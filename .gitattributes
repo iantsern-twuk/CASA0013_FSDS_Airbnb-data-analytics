@@ -2,3 +2,4 @@
 * text=auto
 data/reviews.csv.gz filter=lfs diff=lfs merge=lfs -text
 Documentation/Airbnb[[:space:]]data[[:space:]]processing[[:space:]]and[[:space:]]exploration.ipynb filter=lfs diff=lfs merge=lfs -text
+Documentation/data/reviews.csv.gz filter=lfs diff=lfs merge=lfs -text
