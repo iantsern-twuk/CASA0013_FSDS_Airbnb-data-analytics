@@ -19,9 +19,9 @@ format:
     include-in-header:
       text: |
         \addtokomafont{disposition}{\rmfamily}
-    mainfont: Spectral
-    sansfont: "Roboto Flex"
-    monofont: InputMonoCondensed
+    mainfont: Times
+    sansfont: Times
+    monofont: Times
     papersize: a4
     geometry:
       - top=25mm
@@ -39,46 +39,21 @@ jupyter:
       extension: .qmd
       format_name: quarto
       format_version: '1.0'
-      jupytext_version: 1.15.2
+      jupytext_version: 1.16.4
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: Python (base)
     language: python
-    name: python3
+    name: base
 ---
 
-## Declaration of Authorship {.unnumbered .unlisted}
-
-We, [insert your group's names], pledge our honour that the work presented in this assessment is our own. Where information has been derived from other sources, we confirm that this has been indicated in the work. Where a Large Language Model such as ChatGPT has been used we confirm that we have made its contribution to the final submission clear.
-
-Date:
-
-Student Numbers: 
-
-## Brief Group Reflection
-
-| What Went Well | What Was Challenging |
-| -------------- | -------------------- |
-| A              | B                    |
-| C              | D                    |
-
-## Priorities for Feedback
-
-Are there any areas on which you would appreciate more detailed feedback if we're able to offer it?
-
-{{< pagebreak >}}
-
-# Response to Questions
-
-See the raw file for examples of how to hide computational output as there is code hidden here.
-
 ```{python}
-#| echo: False
+#| echo: false
 import os
 import pandas as pd
 ```
 
 ```{python}
-#| echo: False
+#| echo: false
 host = 'https://orca.casa.ucl.ac.uk'
 path = '~jreades/data'
 file = '20240614-London-listings.parquet'
@@ -98,15 +73,15 @@ else:
 
 :::
 
-An inline citation example: As discussed on @insideairbnb, there are many...
-
-A parenthetical citation example: There are many ways to research Airbnb [see, for example, @insideairbnb]... 
+Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists [@insideairbnb].
 
 ## 2. Why did they collect the InsideAirbnb data?
 
 ::: {.duedate}
 
 ( 4 points; Answer due Week 7 )
+
+IA data seeks to challenge official data from Airbnb, which may be misrepresentative of its operations and impact [@slee_2016]. It offers an alternative perspective to Airbnb’s (limited) publicly available data by purposefully representing it through datasets and visualisations, with the not-for-profit goal of helping cities and communities to make informed decisions concerning Airbnb’s operations [@insideairbnb]. In doing so, IA increases data accessibility on Airbnb’s impacts on residential neighbourhoods worldwide, especially with regard to quantifying the ramifications of short-term lets [@wang_2024] on local communities.  
 
 :::
 
@@ -128,6 +103,8 @@ ax.set_xlim([0,500]);
 
 ( 5 points; Answer due Week 8 )
 
+The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]). The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
+
 :::
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
@@ -136,6 +113,10 @@ ax.set_xlim([0,500]);
 
 ( 11 points; Answer due Week 9 )
 
+As a scrape of Airbnb's website rather than the raw data themselves, the final IA datasets have potential biases and quality issues that should be taken into account by analysts and legislators using them to inform policy. Web-scraping only extracts publicly-available information on Airbnb’s website at the time the script is run: this means it cannot capture deleted listings or exact listing locations, as Airbnb anonymises these for privacy reasons [@prentice_2023]. In addition, Airbnb’s website does not differentiate between when listings are booked or blocked by their host [@crommelin_2018], meaning IA has to use review counts to roughly estimate occupancy rates. However, the process of scraping and processing by IA itself also introduces uncertainty. The web scrapes’ reservation query settings affect the data retrieved, meaning listings may be undercounted if they do not match the search’s parameters [@prentice_2023]. Furthermore, @alsudais_2021 found inaccuracies in the way IA had joined reviews and listing IDs.
+
+Moreover, it is important to remember that Airbnb’s raw data is not necessarily accurate in the first place. Some listings may be fake, duplicates, or inactive [@adamiak_2022]. Finally, the IA data cannot capture short-term letting (STL) transactions through other platforms [@prentice_2023]. This raises the question of whether IA data alone can provide a holistic understanding of the STL market.
+
 :::
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
@@ -143,6 +124,12 @@ ax.set_xlim([0,500]);
 ::: {.duedate}
 
 ( 18 points; Answer due {{< var assess.group-date >}} )
+
+The use of InsideAirbnb data raises a few ethical concerns due to the collection of the data through web scraping. Using an ethics framework developed by @krotov_2020 in their paper, the ethical concerns of web scraping Airbnb’s data can be categorised into infringement of individual and organisational privacy, rights of research subjects, data quality and discrimination. These categories are very applicable and in the case of IA, researchers should always be aware of identifying possible harm to individuals, organisations and enact precautionary measures to avoid these harms. 
+
+Infringement of individual privacy and rights to research subjects are perhaps some of the most significant ethical concerns while using the IA dataset. Since web scraping involves extracting all possible data from a website before parsing and classifying them, these data may unintentionally infringe on users’ privacy as all web activities of individuals can be extracted, revealed and may be a means of personal identification in the future [@zook_2017]. The IA dataset covers users reviews with their first name, duration of stay, neighbourhood, and comments recorded. Although full names and exact locations are anonymised by Airbnb, details of user reviews may reveal more about their daily lives and can risk being re-identified with generative models [@rocher_2019]. Even if personal privacy is not harmed, users may not have given permission to researchers for the use of their data, infringing on rights of research subjects. This requires additional steps to protect anonymity of subjects by deleting identifiable information or detaching unique keys from the dataset [@kohlmayer_2019]. 
+
+Airbnb’s privacy may also be compromised through web scraping since their listing data embedded were not meant to be revealed entirely to the public. This may lead to confidential operations of the company being leaked including market share, intended audiences and other trade secrets which can be maliciously used by competitors. For example, Uber was accused of using web scraping to conduct surveillance on its drivers and its competitors [@rosenblatt_2017].
 
 :::
 
