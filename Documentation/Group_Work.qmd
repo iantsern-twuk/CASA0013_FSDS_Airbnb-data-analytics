@@ -41,15 +41,20 @@ jupyter:
       format_version: '1.0'
       jupytext_version: 1.16.4
   kernelspec:
-    display_name: Python (base)
+    display_name: Python (myenv)
     language: python
-    name: base
+    name: myenv
 ---
 
 ```{python}
 #| echo: false
 import os
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns 
+import geopandas as gpd
+from shapely.geometry import Point
 ```
 
 ```{python}
@@ -145,16 +150,6 @@ __Multiple-listing hosts__
 Equally noteworthy is an analysis of multiple-listing hosts (hosts with more than 1 room/home listed). As IA notes, multiple listings are associated with commercial hosts (Inside Airbnb, 2024), who often escape housing and land-use policies and taxation applicable to traditional landlords (Wachsmuth & Weisler, 2018) and thus warrant greater scrutiny. Our analysis of the proportions of hosts possessing single (=1) and multiple properties (>=2) revealed that the percentage of multiple-listing hosts increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, indicating that the proportion of multiple-listing hosts is growing to occupy more of the listings market. The bar chart below visualising the change in number of listings owned by multiple- and single-listing hosts over the past 4 years confirms a steady growth in the presence of multiple-listing hosts.
 
 ```{python}
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns 
-import geopandas as gpd
-from shapely.geometry import Point
-```
-
-```{python}
 df_listings_2024 = pd.read_csv('data/raw/2023_listings.csv.gz', compression='gzip', low_memory=False) #compression='gzip' is to unzip the file
 df_listings_2021 = pd.read_csv('data/raw/2021_listings.csv.gz', compression='gzip', low_memory=False)
 df_listings_2022 = pd.read_csv('data/raw/2022_listings.csv.gz', compression='gzip', low_memory=False)
@@ -188,6 +183,10 @@ print(f"Number of unique host id is {df_listings_combined['host_id'].nunique():,
 ```
 
 ```{python}
+df_host_listings_count = df_listings_combined.groupby(['host_id', 'year'])['id'].nunique().reset_index()
+df_host_listings_count.columns = ['host_id', 'year', 'host_listings_count']
+df_host_listings_count
+
 #count the category of host_listings_count
 bins = [0, 2, float('inf')] #catogrize host_listings_count into <=1 and >2
 labels = ['Single Property hosts', 'Multiple Properties hosts']
