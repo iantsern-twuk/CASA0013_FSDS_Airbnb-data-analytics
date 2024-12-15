@@ -144,6 +144,98 @@ Firstly, analysing the categories of Airbnb listing types reveals that the natur
 __Multiple-listing hosts__
 Equally noteworthy is an analysis of multiple-listing hosts (hosts with more than 1 room/home listed). As IA notes, multiple listings are associated with commercial hosts (Inside Airbnb, 2024), who often escape housing and land-use policies and taxation applicable to traditional landlords (Wachsmuth & Weisler, 2018) and thus warrant greater scrutiny. Our analysis of the proportions of hosts possessing single (=1) and multiple properties (>=2) revealed that the percentage of multiple-listing hosts increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, indicating that the proportion of multiple-listing hosts is growing to occupy more of the listings market. The bar chart below visualising the change in number of listings owned by multiple- and single-listing hosts over the past 4 years confirms a steady growth in the presence of multiple-listing hosts.
 
+```{python}
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns 
+import geopandas as gpd
+from shapely.geometry import Point
+```
+
+```{python}
+df_listings_2024 = pd.read_csv('data/raw/2023_listings.csv.gz', compression='gzip', low_memory=False) #compression='gzip' is to unzip the file
+df_listings_2021 = pd.read_csv('data/raw/2021_listings.csv.gz', compression='gzip', low_memory=False)
+df_listings_2022 = pd.read_csv('data/raw/2022_listings.csv.gz', compression='gzip', low_memory=False)
+df_listings_2023 = pd.read_csv('data/raw/2023_listings.csv.gz', compression='gzip', low_memory=False)
+df_msoa_map = gpd.read_file('data/shapefiles/MSOA_2011_London_gen_MHW.shp')
+
+print(f"Data frame listings_2024 is {df_listings_2024.shape[0]:,} x {df_listings_2024.shape[1]}")
+print(f"Data frame listings_2021 is {df_listings_2021.shape[0]:,} x {df_listings_2021.shape[1]}")
+print(f"Data frame listings_2022 is {df_listings_2022.shape[0]:,} x {df_listings_2022.shape[1]}")
+print(f"Data frame listings_2023 is {df_listings_2023.shape[0]:,} x {df_listings_2023.shape[1]}")
+print(f"Data frame msoa_map is {df_msoa_map.shape[0]:,} x {df_msoa_map.shape[1]}")
+```
+
+```{python}
+#add a new column called year to each dataframe
+df_listings_2024['year'] = 2024
+df_listings_2021['year'] = 2021
+df_listings_2022['year'] = 2022
+df_listings_2023['year'] = 2023
+
+df_listings_combined = pd.concat([df_listings_2024, df_listings_2021, df_listings_2022, df_listings_2023], axis=0, ignore_index=True)   
+print(f"Combined data frame is {df_listings_combined.shape[0]:,} x {df_listings_combined.shape[1]}")
+
+#select the column I want to use
+columns_to_use = ['id', 'listing_url', 'name', 'host_id', 'host_name', 'host_listings_count', 'host_total_listings_count', 'latitude', 'longitude', 'property_type', 'room_type', 'price', 'number_of_reviews','review_scores_rating', 'year']
+df_listings_combined = df_listings_combined[columns_to_use]
+print(f"Combined data frame is {df_listings_combined.shape[0]:,} x {df_listings_combined.shape[1]}")
+#how many unigue id and host id
+print(f"Number of unique id is {df_listings_combined['id'].nunique():,}")
+print(f"Number of unique host id is {df_listings_combined['host_id'].nunique():,}")
+```
+
+```{python}
+#count the category of host_listings_count
+bins = [0, 2, float('inf')] #catogrize host_listings_count into <=1 and >2
+labels = ['Single Property hosts', 'Multiple Properties hosts']
+df_host_listings_count['category'] = pd.cut(df_host_listings_count['host_listings_count'], bins=bins, labels=labels, right=False)
+df_host_listings_count
+```
+
+```{python}
+#merge the df_listings_combined and df_host_listings_count
+df_new_listings_combined = df_listings_combined.merge(df_host_listings_count, on=['host_id', 'year'], how='left') 
+df_new_listings_combined = df_new_listings_combined.rename(columns={'host_listings_count_y': 'new_host_listings_count'})
+df_new_listings_combined #make the latitude and longitude to geo dara frame point and create the new column called geometry_point
+
+points = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])]
+gdf_new_listings_combined = gpd.GeoDataFrame(df_new_listings_combined, geometry = points)
+gdf_new_listings_combined.crs = "EPSG:4326"
+gdf_new_listings_combined = gdf_new_listings_combined.rename(columns={'geometry': 'geometry_point'})
+gdf_new_listings_combined.head()
+```
+
+```{python}
+multiple_properties_ids = df_new_listings_combined[df_new_listings_combined['category'] == 'Multiple Properties hosts'].groupby('year')['id'].nunique()
+single_property_ids = df_new_listings_combined[df_new_listings_combined['category'] == 'Single Property hosts'].groupby('year')['id'].nunique()
+percentage_multiple_properties_ids = multiple_properties_ids / (multiple_properties_ids + single_property_ids)
+
+sns.set(style="white") #like darkgrid, whitegrid, dark, white, ticks
+fig, ax1 = plt.subplots(figsize=(10, 6))
+bar_width = 0.35
+
+index = np.arange(len(multiple_properties_ids))
+
+# bar chart
+ax1.bar(multiple_properties_ids.index, multiple_properties_ids,width=bar_width, color='#ff5c00', label='Count of listings by multiple-property hosts')
+ax1.bar(single_property_ids.index + bar_width, single_property_ids,width=bar_width, color='#0061ff', label='Count of listings by single-property hosts')
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Count of listings', color='black')
+ax1.tick_params(axis='y', labelcolor='black')
+ax1.set_xticks(multiple_properties_ids.index)  # year scale
+
+# add legend
+fig.legend(loc='upper left', bbox_to_anchor=(0.13, 0.88))
+plt.grid(color='gray', linestyle='--', linewidth=0.5)
+plt.title("Single- and Multi-property Hosts' Listings from 2021 to 2024")
+plt.grid(True)
+plt.show()
+
+print(percentage_multiple_properties_ids)
+```
 < Figure 2 : Single- and Multi-property Hosts' Listings from 2021 to 2024 >
 
 These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities (Quattrone et al., 2016).
