@@ -100,30 +100,29 @@ ax.set_xlim([0,500]);
 ## 3. How did they collect it?
 
 ::: {.duedate}
-
 ( 5 points; Answer due Week 8 )
+:::
 
 The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]). The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
 
-:::
+
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
 
 ::: {.duedate}
-
 ( 11 points; Answer due Week 9 )
+:::
 
 As a scrape of Airbnb's website rather than the raw data themselves, the final IA datasets have potential biases and quality issues that should be taken into account by analysts and legislators using them to inform policy. Web-scraping only extracts publicly-available information on Airbnb’s website at the time the script is run: this means it cannot capture deleted listings or exact listing locations, as Airbnb anonymises these for privacy reasons [@prentice_2023]. In addition, Airbnb’s website does not differentiate between when listings are booked or blocked by their host [@crommelin_2018], meaning IA has to use review counts to roughly estimate occupancy rates. However, the process of scraping and processing by IA itself also introduces uncertainty. The web scrapes’ reservation query settings affect the data retrieved, meaning listings may be undercounted if they do not match the search’s parameters [@prentice_2023]. Furthermore, @alsudais_2021 found inaccuracies in the way IA had joined reviews and listing IDs.
 
 Moreover, it is important to remember that Airbnb’s raw data is not necessarily accurate in the first place. Some listings may be fake, duplicates, or inactive [@adamiak_2022]. Finally, the IA data cannot capture short-term letting (STL) transactions through other platforms [@prentice_2023]. This raises the question of whether IA data alone can provide a holistic understanding of the STL market.
 
-:::
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 
 ::: {.duedate}
-
 ( 18 points; Answer due {{< var assess.group-date >}} )
+:::
 
 The use of InsideAirbnb data raises a few ethical concerns due to the collection of the data through web scraping. Using an ethics framework developed by @krotov_2020 in their paper, the ethical concerns of web scraping Airbnb’s data can be categorised into infringement of individual and organisational privacy, rights of research subjects, data quality and discrimination. These categories are very applicable and in the case of IA, researchers should always be aware of identifying possible harm to individuals, organisations and enact precautionary measures to avoid these harms. 
 
@@ -131,23 +130,31 @@ Infringement of individual privacy and rights to research subjects are perhaps s
 
 Airbnb’s privacy may also be compromised through web scraping since their listing data embedded were not meant to be revealed entirely to the public. This may lead to confidential operations of the company being leaked including market share, intended audiences and other trade secrets which can be maliciously used by competitors. For example, Uber was accused of using web scraping to conduct surveillance on its drivers and its competitors [@rosenblatt_2017].
 
-:::
-
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
 
 ::: {.duedate}
-
 ( 15 points; Answer due {{< var assess.group-date >}} )
-
 :::
+
+__Room types__
+Firstly, analysing the categories of Airbnb listing types reveals that the nature of room types available has changed over time. Looking at room type data from 2021 to 2024, we identified a rise in the proportion of listings that were entire homes (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This suggests an overall shift in Airbnb activity: that there is increasing demand from tenants to rent entire-home Airbnbs, and that more hosts are listing entire homes to meet that demand, deviating from Airbnb’s claims to a “sharing economy” (Minton, 2023). Subsequently, an exploration of where in London this change is occurring most significantly reveals that entire-home listings remain predominant in central London but have steadily expanded outwards over the years. 
+
+< Figure: Map showing density of entire-home listings MSOA , 2021 vs 2022 vs 2023 vs 2024 >
+
+__Multiple-listing hosts__
+Equally noteworthy is an analysis of multiple-listing hosts (hosts with more than 1 room/home listed). As IA notes, multiple listings are associated with commercial hosts (Inside Airbnb, 2024), who often escape housing and land-use policies and taxation applicable to traditional landlords (Wachsmuth & Weisler, 2018) and thus warrant greater scrutiny. Our analysis of the proportions of hosts possessing single (=1) and multiple properties (>=2) revealed that the percentage of multiple-listing hosts increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, indicating that the proportion of multiple-listing hosts is growing to occupy more of the listings market. The bar chart below visualising the change in number of listings owned by multiple- and single-listing hosts over the past 4 years confirms a steady growth in the presence of multiple-listing hosts.
+
+< Figure 2 : Single- and Multi-property Hosts' Listings from 2021 to 2024 >
+
+These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities (Quattrone et al., 2016).
+
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
 ::: {.duedate}
-
 ( 45 points; Answer due {{< var assess.group-date >}} )
-
 :::
+
 
 ## Sustainable Authorship Tools
 
