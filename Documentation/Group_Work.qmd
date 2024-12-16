@@ -41,9 +41,9 @@ jupyter:
       format_version: '1.0'
       jupytext_version: 1.16.4
   kernelspec:
-    display_name: Python (myenv)
+    display_name: Python (base)
     language: python
-    name: myenv
+    name: base
 ---
 
 ```{python}
@@ -55,6 +55,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns 
 import geopandas as gpd
 from shapely.geometry import Point
+```
+
+```{python}
+import requests
+
+def download_bib_file(url, output_path):
+    if not os.path.exists(output_path):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(output_path, 'w', encoding='utf-8') as file:
+                file.write(response.text)
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to render document: {e}")
+
+download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
+
+download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
 ```
 
 ```{python}
@@ -235,6 +253,7 @@ plt.show()
 
 print(percentage_multiple_properties_ids)
 ```
+
 < Figure 2 : Single- and Multi-property Hosts' Listings from 2021 to 2024 >
 
 These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities (Quattrone et al., 2016).
