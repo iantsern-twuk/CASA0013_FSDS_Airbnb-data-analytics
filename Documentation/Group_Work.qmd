@@ -46,15 +46,56 @@ jupyter:
     name: base
 ---
 
+## Declaration of Authorship {.unnumbered .unlisted}
+
+We, Jessica Ebner-Statt, Cerys Edwards, Jin Wen Kee, Jiayi Low, and Chung-En Tsern, pledge our honour that the work presented in this assessment is our own. Where information has been derived from other sources, we confirm that this has been indicated in the work. Where a Large Language Model such as ChatGPT has been used we confirm that we have made its contribution to the final submission clear.
+
+Date: 17 December 2024
+
+Student Numbers: 24088089, 23197499, 19017015, 21119312, 23212203 (in order)
+
+## Brief Group Reflection
+
+| What Went Well | What Was Challenging |
+| :--------------: | :--------------------: |
+| Pooling/Sharing information              | Identifying a meaningful research direction                    |
+| Delegating tasks based on strengths, interests, and experience              | Identifying an appropriate metric of Airbnb occupancy                    |
+| Self-directed learning for code and analysis methods              | Coding for the outputs we had in mind                    |
+
+
+## Priorities for Feedback
+
+Are there any areas on which you would appreciate more detailed feedback if we're able to offer it?
+* Efficacy and clarity of visualisations
+* Methods used
+
+{{< pagebreak >}}
+
+# Response to Questions
+
 ```{python}
 #| echo: false
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns 
-import geopandas as gpd
+import seaborn as sns
+import numpy as np
 from shapely.geometry import Point
+import geopandas as gpd
+import contextily as ctx
+from matplotlib.patches import Patch
+from matplotlib.gridspec import GridSpec
+from matplotlib import colors
+import rioxarray  # Surface data manipulation
+import xarray  # Surface data manipulation
+from pysal.explore import esda  # Exploratory Spatial analytics
+from pysal.lib import weights  # Spatial weights
+from matplotlib_scalebar.scalebar import ScaleBar
+import contextily
+
+# Setting default font
+#plt.rcParams['font.family'] = "Liberation Serif"
 ```
 
 ```{python}
@@ -89,96 +130,154 @@ else:
 ```
 
 ## 1. Who collected the InsideAirbnb data?
-
-::: {.duedate}
-
-( 2 points; Answer due Week 7 )
-
-:::
-
 Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists [@insideairbnb].
 
 ## 2. Why did they collect the InsideAirbnb data?
-
-::: {.duedate}
-
-( 4 points; Answer due Week 7 )
-
 IA data seeks to challenge official data from Airbnb, which may be misrepresentative of its operations and impact [@slee_2016]. It offers an alternative perspective to Airbnb’s (limited) publicly available data by purposefully representing it through datasets and visualisations, with the not-for-profit goal of helping cities and communities to make informed decisions concerning Airbnb’s operations [@insideairbnb]. In doing so, IA increases data accessibility on Airbnb’s impacts on residential neighbourhoods worldwide, especially with regard to quantifying the ramifications of short-term lets [@wang_2024] on local communities.  
 
-:::
-
-```{python}
-#| output: asis
-print(f"One of way to embed output in the text looks like this: after cleaning, we were left with {df.shape[0]:,} rows of data.")
-```
-
-This way is also supposed to work (`{python} f"{df.shape[0]:,}" `) but I've found it less reliable.
-
-```{python}
-ax = df.host_listings_count.plot.hist(bins=50);
-ax.set_xlim([0,500]);
-```
-
 ## 3. How did they collect it?
-
-::: {.duedate}
-( 5 points; Answer due Week 8 )
-:::
-
 The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]). The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
 
 
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
-
-::: {.duedate}
-( 11 points; Answer due Week 9 )
-:::
-
 As a scrape of Airbnb's website rather than the raw data themselves, the final IA datasets have potential biases and quality issues that should be taken into account by analysts and legislators using them to inform policy. Web-scraping only extracts publicly-available information on Airbnb’s website at the time the script is run: this means it cannot capture deleted listings or exact listing locations, as Airbnb anonymises these for privacy reasons [@prentice_2023]. In addition, Airbnb’s website does not differentiate between when listings are booked or blocked by their host [@crommelin_2018], meaning IA has to use review counts to roughly estimate occupancy rates. However, the process of scraping and processing by IA itself also introduces uncertainty. The web scrapes’ reservation query settings affect the data retrieved, meaning listings may be undercounted if they do not match the search’s parameters [@prentice_2023]. Furthermore, @alsudais_2021 found inaccuracies in the way IA had joined reviews and listing IDs.
 
 Moreover, it is important to remember that Airbnb’s raw data is not necessarily accurate in the first place. Some listings may be fake, duplicates, or inactive [@adamiak_2022]. Finally, the IA data cannot capture short-term letting (STL) transactions through other platforms [@prentice_2023]. This raises the question of whether IA data alone can provide a holistic understanding of the STL market.
 
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
-
-::: {.duedate}
-( 18 points; Answer due {{< var assess.group-date >}} )
-:::
-
 The use of InsideAirbnb data raises a few ethical concerns due to the collection of the data through web scraping. Using an ethics framework developed by @krotov_2020 in their paper, the ethical concerns of web scraping Airbnb’s data can be categorised into infringement of individual and organisational privacy, rights of research subjects, data quality and discrimination. These categories are very applicable and in the case of IA, researchers should always be aware of identifying possible harm to individuals, organisations and enact precautionary measures to avoid these harms. 
 
 Infringement of individual privacy and rights to research subjects are perhaps some of the most significant ethical concerns while using the IA dataset. Since web scraping involves extracting all possible data from a website before parsing and classifying them, these data may unintentionally infringe on users’ privacy as all web activities of individuals can be extracted, revealed and may be a means of personal identification in the future [@zook_2017]. The IA dataset covers users reviews with their first name, duration of stay, neighbourhood, and comments recorded. Although full names and exact locations are anonymised by Airbnb, details of user reviews may reveal more about their daily lives and can risk being re-identified with generative models [@rocher_2019]. Even if personal privacy is not harmed, users may not have given permission to researchers for the use of their data, infringing on rights of research subjects. This requires additional steps to protect anonymity of subjects by deleting identifiable information or detaching unique keys from the dataset [@kohlmayer_2019]. 
 
-Airbnb’s privacy may also be compromised through web scraping since their listing data embedded were not meant to be revealed entirely to the public. This may lead to confidential operations of the company being leaked including market share, intended audiences and other trade secrets which can be maliciously used by competitors. For example, Uber was accused of using web scraping to conduct surveillance on its drivers and its competitors [@rosenblatt_2017].
+Just like how individual privacy is an ethical concern, organisations have a right to their privacy as well. Airbnb’s privacy may be compromised through web scraping since their listing data embedded were not meant to be revealed entirely to the public. This may lead to confidential operations of the company being leaked including market share and intended audiences which can be maliciously used by competitors. For example, Uber was accused of using web scraping to conduct surveillance on its drivers and its competitors [@rosenblatt_2017].
 
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
-
-::: {.duedate}
-( 15 points; Answer due {{< var assess.group-date >}} )
-:::
-
 __Room types__
-Firstly, analysing the categories of Airbnb listing types reveals that the nature of room types available has changed over time. Looking at room type data from 2021 to 2024, we identified a rise in the proportion of listings that were entire homes (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This suggests an overall shift in Airbnb activity: that there is increasing demand from tenants to rent entire-home Airbnbs, and that more hosts are listing entire homes to meet that demand, deviating from Airbnb’s claims to a “sharing economy” (Minton, 2023). Subsequently, an exploration of where in London this change is occurring most significantly reveals that entire-home listings remain predominant in central London but have steadily expanded outwards over the years. 
 
-< Figure: Map showing density of entire-home listings MSOA , 2021 vs 2022 vs 2023 vs 2024 >
-
-__Multiple-listing hosts__
-Equally noteworthy is an analysis of multiple-listing hosts (hosts with more than 1 room/home listed). As IA notes, multiple listings are associated with commercial hosts (Inside Airbnb, 2024), who often escape housing and land-use policies and taxation applicable to traditional landlords (Wachsmuth & Weisler, 2018) and thus warrant greater scrutiny. Our analysis of the proportions of hosts possessing single (=1) and multiple properties (>=2) revealed that the percentage of multiple-listing hosts increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, indicating that the proportion of multiple-listing hosts is growing to occupy more of the listings market. The bar chart below visualising the change in number of listings owned by multiple- and single-listing hosts over the past 4 years confirms a steady growth in the presence of multiple-listing hosts.
+An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home listings. From data on room types, we identified a rise in the proportion of entire-home listings (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This reflects growing demand for entire-home rentals, challenging Airbnb’s claims to a “sharing economy” [@minton-23]. An exploration of where this change is occurring (Figure 1) reveals that entire-home listings remain concentrated in central London but have steadily expanded outward over time.
 
 ```{python}
-df_listings_2024 = pd.read_csv('data/raw/2023_listings.csv.gz', compression='gzip', low_memory=False) #compression='gzip' is to unzip the file
-df_listings_2021 = pd.read_csv('data/raw/2021_listings.csv.gz', compression='gzip', low_memory=False)
-df_listings_2022 = pd.read_csv('data/raw/2022_listings.csv.gz', compression='gzip', low_memory=False)
-df_listings_2023 = pd.read_csv('data/raw/2023_listings.csv.gz', compression='gzip', low_memory=False)
-df_msoa_map = gpd.read_file('data/shapefiles/MSOA_2011_London_gen_MHW.shp')
+# data source
+cleaned_2021 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2021_listings_clean.csv"
+cleaned_2022 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2022_listings_clean.csv"
+cleaned_2023 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2023_listings_clean.csv"
+cleaned_2024 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2024_listings_clean.csv"
+url_msoa_map = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/MSOA_2011_London_gen_MHW.shp'
+url_boro_map = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/London_Borough_Excluding_MHW.shp'
+```
 
-print(f"Data frame listings_2024 is {df_listings_2024.shape[0]:,} x {df_listings_2024.shape[1]}")
-print(f"Data frame listings_2021 is {df_listings_2021.shape[0]:,} x {df_listings_2021.shape[1]}")
-print(f"Data frame listings_2022 is {df_listings_2022.shape[0]:,} x {df_listings_2022.shape[1]}")
-print(f"Data frame listings_2023 is {df_listings_2023.shape[0]:,} x {df_listings_2023.shape[1]}")
-print(f"Data frame msoa_map is {df_msoa_map.shape[0]:,} x {df_msoa_map.shape[1]}")
+```{python}
+listings_2021 = pd.read_csv(cleaned_2021, low_memory = False)
+listings_2022 = pd.read_csv(cleaned_2022, low_memory = False)
+listings_2023 = pd.read_csv(cleaned_2023, low_memory = False)
+listings_2024 = pd.read_csv(cleaned_2024, low_memory = False)
+df_msoa_map = gpd.read_file(url_msoa_map)
+boro = gpd.read_file(url_boro_map)
+```
+
+```{python}
+# Now plotting entire home listing density by MSOA
+def entire_home_map_msoa(listings):
+    # create geodataframe
+    geolistings = gpd.GeoDataFrame(listings,geometry = gpd.points_from_xy(listings.longitude,listings.latitude,crs ='epsg:4326'))
+    
+    # read MSOAs shapefile
+    msoas = df_msoa_map
+    
+    # ensure they are the same CRS
+    geolistings = geolistings.to_crs(msoas.crs)
+    
+    # Spatial join to find which points fall within each MSOA
+    joined_gdf_msoa = gpd.sjoin(geolistings, msoas, how='inner', predicate='within')
+
+    # counting total listings by MSOA
+    total_listings_msoa = joined_gdf_msoa.groupby('MSOA11CD').size().reset_index(name='total_listings')
+
+    # filtering for room type = "entire home/apt" and getting counts
+    entire_home_gdf = joined_gdf_msoa[joined_gdf_msoa['room_type'] == "Entire home/apt"]
+    entire_home_counts = entire_home_gdf.groupby('MSOA11CD').size().reset_index(name='entire_home_count')
+
+    # adding total listings and "entire home/apt" count to main MSOAs gdf
+    msoas = msoas.merge(total_listings_msoa, how='left', left_on='MSOA11CD', right_on='MSOA11CD')
+    msoas = msoas.merge(entire_home_counts, how='left', left_on='MSOA11CD', right_on='MSOA11CD')
+
+    # calculating proportion of "entire home/apt" listings out of total listings
+    msoas['entire_home_density'] = msoas['entire_home_count'] / msoas['total_listings']
+
+    return msoas
+
+# Years to plot
+listings_list = [listings_2021,listings_2022,listings_2023,listings_2024]
+
+# Create a plot with 4 subplots (one for each year)
+fig, axes = plt.subplots(1, 4, figsize=(24, 6))
+
+# Loop through the years and plot each map
+for i, year in enumerate(listings_list):
+    # Determine the position of the subplot
+    ax = axes[i]  
+    # Running function on dataset from each year
+    entirehomedensity = entire_home_map_msoa(year)
+    # Plotting output
+    entirehomedensity.plot(column='entire_home_density', 
+                           cmap = plt.cm.coolwarm, 
+                           ax = ax,
+                          legend=True,
+                           legend_kwds={'label': "Proportion of Entire Home/Apt Listings",
+                                        'orientation': "horizontal"})
+    
+    # Set the title for each subplot
+    ax.set_title(f'{i+2021}')
+    ax.set_axis_off()  # Optionally turn off the axis for a cleaner look
+
+plt.suptitle("Figure 1: Proportion of All Listings that are Entire Home/Apt by MSOA", fontsize= 24)
+plt.tight_layout()
+plt.show()
+```
+
+__Multiple-listing hosts__
+
+Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts [@insideairbnb_2024], who often escape housing/land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018], thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.
+
+```{python}
+url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
+url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2021_listings.csv.gz'
+url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
+url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
+```
+
+```{python}
+listings_2021 = pd.read_csv(cleaned_2021, low_memory = False)
+```
+
+```{python}
+listings_2022 = pd.read_csv(cleaned_2022, low_memory = False)
+```
+
+```{python}
+listings_2023 = pd.read_csv(cleaned_2023, low_memory = False)
+```
+
+```{python}
+listings_2024 = pd.read_csv(cleaned_2024, low_memory = False)
+```
+
+```{python}
+df_listings_2024 = pd.read_csv(url_listings_2024, compression='gzip', low_memory=False)
+```
+
+```{python}
+df_listings_2021 = pd.read_csv(url_listings_2021, compression='gzip', low_memory=False)
+```
+
+```{python}
+df_listings_2022 = pd.read_csv(url_listings_2022, compression='gzip', low_memory=False)
+```
+
+```{python}
+df_listings_2023 = pd.read_csv(url_listings_2023, compression='gzip', low_memory=False)
 ```
 
 ```{python}
@@ -189,27 +288,20 @@ df_listings_2022['year'] = 2022
 df_listings_2023['year'] = 2023
 
 df_listings_combined = pd.concat([df_listings_2024, df_listings_2021, df_listings_2022, df_listings_2023], axis=0, ignore_index=True)   
-print(f"Combined data frame is {df_listings_combined.shape[0]:,} x {df_listings_combined.shape[1]}")
 
 #select the column I want to use
 columns_to_use = ['id', 'listing_url', 'name', 'host_id', 'host_name', 'host_listings_count', 'host_total_listings_count', 'latitude', 'longitude', 'property_type', 'room_type', 'price', 'number_of_reviews','review_scores_rating', 'year']
 df_listings_combined = df_listings_combined[columns_to_use]
-print(f"Combined data frame is {df_listings_combined.shape[0]:,} x {df_listings_combined.shape[1]}")
-#how many unigue id and host id
-print(f"Number of unique id is {df_listings_combined['id'].nunique():,}")
-print(f"Number of unique host id is {df_listings_combined['host_id'].nunique():,}")
 ```
 
 ```{python}
 df_host_listings_count = df_listings_combined.groupby(['host_id', 'year'])['id'].nunique().reset_index()
 df_host_listings_count.columns = ['host_id', 'year', 'host_listings_count']
-df_host_listings_count
 
 #count the category of host_listings_count
 bins = [0, 2, float('inf')] #catogrize host_listings_count into <=1 and >2
 labels = ['Single Property hosts', 'Multiple Properties hosts']
 df_host_listings_count['category'] = pd.cut(df_host_listings_count['host_listings_count'], bins=bins, labels=labels, right=False)
-df_host_listings_count
 ```
 
 ```{python}
@@ -222,7 +314,6 @@ points = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_
 gdf_new_listings_combined = gpd.GeoDataFrame(df_new_listings_combined, geometry = points)
 gdf_new_listings_combined.crs = "EPSG:4326"
 gdf_new_listings_combined = gdf_new_listings_combined.rename(columns={'geometry': 'geometry_point'})
-gdf_new_listings_combined.head()
 ```
 
 ```{python}
@@ -230,44 +321,350 @@ multiple_properties_ids = df_new_listings_combined[df_new_listings_combined['cat
 single_property_ids = df_new_listings_combined[df_new_listings_combined['category'] == 'Single Property hosts'].groupby('year')['id'].nunique()
 percentage_multiple_properties_ids = multiple_properties_ids / (multiple_properties_ids + single_property_ids)
 
-sns.set(style="white") #like darkgrid, whitegrid, dark, white, ticks
-fig, ax1 = plt.subplots(figsize=(10, 6))
-bar_width = 0.35
 
-index = np.arange(len(multiple_properties_ids))
+fig = plt.figure(figsize=(20, 10))
+gs = GridSpec(nrows=1, ncols=2, width_ratios=[1, 1.5])  # calculate the width ratio
+
+# add the big title
+plt.suptitle("Figure 2: Numerical (2021-2024) and Spatial (2024) Trends in Single- and Multiple-unit Host Listings", fontsize= 24)
 
 # bar chart
-ax1.bar(multiple_properties_ids.index, multiple_properties_ids,width=bar_width, color='#ff5c00', label='Count of listings by multiple-property hosts')
-ax1.bar(single_property_ids.index + bar_width, single_property_ids,width=bar_width, color='#0061ff', label='Count of listings by single-property hosts')
+ax1 = fig.add_subplot(gs[0, 0])
+bar_width = 0.35
+index = np.arange(len(multiple_properties_ids))
+
+ax1.bar(multiple_properties_ids.index, multiple_properties_ids, width=bar_width, color='#ff5c00', label='Multi-unit host listings')
+ax1.bar(single_property_ids.index + bar_width, single_property_ids, width=bar_width, color='#0061ff', label='Single-unit host listings')
 ax1.set_xlabel('Year')
 ax1.set_ylabel('Count of listings', color='black')
 ax1.tick_params(axis='y', labelcolor='black')
-ax1.set_xticks(multiple_properties_ids.index)  # year scale
+ax1.set_xticks(multiple_properties_ids.index)
+ax1.set_title("Single- and Multi-unit Hosts' Listings from 2021 to 2024")
+ax1.grid(color='gray', linestyle='--', linewidth=0.5)
+ax1.legend(loc='upper left')  # legend
 
-# add legend
-fig.legend(loc='upper left', bbox_to_anchor=(0.13, 0.88))
-plt.grid(color='gray', linestyle='--', linewidth=0.5)
-plt.title("Single- and Multi-property Hosts' Listings from 2021 to 2024")
-plt.grid(True)
+# mapping
+geometry_map = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])] 
+gdf_map = gpd.GeoDataFrame(df_new_listings_combined, geometry=geometry_map, crs="EPSG:4326")
+gdf_map = gdf_map.to_crs(epsg=3857)
+
+color_map = {
+    'Multiple Properties hosts': '#FF5C00',
+    'Single Property hosts': '#0061FF'
+}
+gdf_map['color'] = gdf_map['category'].map(color_map)
+
+min_x, min_y, max_x, max_y = gdf_map.total_bounds
+
+ax2 = fig.add_subplot(gs[0, 1])
+gdf_map.plot(ax=ax2, color=gdf_map['color'], markersize=0.05, alpha=0.2)
+ax2.set_xlim([min_x, max_x])
+ax2.set_ylim([min_y, max_y])
+ctx.add_basemap(ax2, source=ctx.providers.CartoDB.Positron)
+
+legend_labels = {
+    'Multi-unit host listings': '#FF5C00', 
+    'Single-unit host listings': '#0061FF'
+}
+patches = [Patch(color=color, label=label) for label, color in legend_labels.items()]
+ax2.legend(handles=patches, loc='upper left', bbox_to_anchor=(0.01, 0.1), fontsize=10)  
+ax2.set_title('The listings of multi-unit and single-unit hosts distribution in 2024')
+plt.tight_layout()
 plt.show()
-
-print(percentage_multiple_properties_ids)
 ```
 
-< Figure 2 : Single- and Multi-property Hosts' Listings from 2021 to 2024 >
-
-These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities (Quattrone et al., 2016).
+These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities [@quattrone_2016].
 
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-::: {.duedate}
-( 45 points; Answer due {{< var assess.group-date >}} )
-:::
+## ---------------- jess ----------------
 
+Having assessed the efficacy of the 90-day policy along a temporal scale, we now consider the spatial implications of policies that aim to curb the expansion of commercialised Airbnbs in London. The effects of multi-unit hosts are well documented in the literature; @wachsmuth_2018 reported that gentrification and reduced rental opportunities were rampant in neighbourhoods with a strong presence of multi-unit hosts, consequently transforming Airbnb’s peer-to-peer sharing economy platform to a professional hosts-to-peer business operator. To identify spatial clusters of single-unit host and multi-unit host listings, we first aggregated counts of Single-unit Host Listings (SHL) and Multi-unit Host Listings (MHL) into count per square kilometers (listing density) in each Middle Super Output Area (MSOA). Getis-Ord G* statistic was then employed to determine hot and cold spots of SHL and MHL density. Due to the granularity of the MSOA layer, the G* statistic was calculated using k=8 neighbours to ensure that sufficient local patterns are captured. The G* z-scores are also standardised, making the both SHL and MHL densities comparable.
+
+```{python}
+df_new_listings_combined = df_listings_combined.merge(df_host_listings_count, on=['host_id', 'year'], how='left') 
+df_new_listings_combined = df_new_listings_combined.rename(columns={'host_listings_count_y': 'new_host_listings_count'})
+df_new_listings_combined #make the latitude and longitude to geo dara frame point and create the new column called geometry_point
+
+points = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])]
+gdf_new_listings_combined = gpd.GeoDataFrame(df_new_listings_combined, geometry = points)
+gdf_new_listings_combined.crs = "EPSG:4326"
+gdf_new_listings_combined = gdf_new_listings_combined.rename(columns={'geometry': 'geometry_point'})
+gdf_new_listings_combined = gdf_new_listings_combined.set_geometry('geometry_point')
+```
+
+```{python}
+#1.use the df_msoa_map column "geometry" to count the point in the df_new_listings_combined column "geometry_point" (longitude, latitude) 
+#2. and split to single property count and multiple properties count by year 
+#3. create the percentage of multiple properties  = multiple properties count / (multiple properties count + single property count) by year 
+
+#make sure the coordinate system is the same
+df_msoa_map = df_msoa_map.to_crs(epsg=4326)
+gdf_new_listings_combined = gdf_new_listings_combined.to_crs(epsg=4326)
+
+# spatial join to count the point in the df_new_listings_combined column "geometry_point" (longitude, latitude) 
+gdf_joined = gpd.sjoin(df_msoa_map, gdf_new_listings_combined, how="inner", predicate='contains')
+
+count_properties = gdf_joined.groupby(['MSOA11CD', 'year', 'category'], observed=True).size().unstack(fill_value=0)
+
+# check the column name and add the missing column with 0
+expected_columns = ['Single Property hosts', 'Multiple Properties hosts']
+for col in expected_columns:
+    if col not in count_properties.columns:
+        count_properties[col] = 0
+
+# calculate the total properties and percentage of multiple properties
+count_properties['Total Properties'] = count_properties.sum(axis=1)
+count_properties['Percentage of Multiple Properties'] = (count_properties['Multiple Properties hosts'] / count_properties['Total Properties']) * 100
+
+# if the column "Total Properties" is not in the dataframe, add it with 0
+if 'Total Properties' not in count_properties.columns:
+    count_properties['Total Properties'] = 0
+
+# index to normal column
+count_properties.reset_index(inplace=True)
+df_count_properties = count_properties
+```
+
+```{python}
+df_msoa_map_subset = df_msoa_map[['MSOA11CD', 'geometry']]
+df_count_properties_msoa = df_count_properties.merge(df_msoa_map_subset, on='MSOA11CD', how='left')
+
+df = gpd.GeoDataFrame(df_count_properties_msoa, geometry='geometry')
+df = df.to_crs(epsg=27700)
+
+# Compute the area of each geometry in square meters
+df['area'] = df['geometry'].area
+
+# Calculate density (count per square kilometres)
+df['density'] = df['Multiple Properties hosts'] / (df['area'] * 0.001 * 0.001)
+
+year = 2024
+df1 = df[df['year'] == year]
+
+df = gpd.GeoDataFrame(df_count_properties_msoa, geometry='geometry')
+df = df.to_crs(epsg=27700)
+# Compute the area of each geometry in square meters
+df['area'] = df['geometry'].area
+# Calculate density (count per square kilometres)
+df['density'] = df['Single Property hosts'] / (df['area'] * 0.001 * 0.001)
+year = 2024
+df2 = df[df['year'] == year]
+```
+
+```{python}
+w = weights.distance.KNN.from_dataframe(df1, k=8)
+# Row-standardization
+w.transform = "R"
+go_i = esda.getisord.G_Local(df1["density"], w)
+# Gi*
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
+
+import numpy as np
+
+def g_map(g, db, ax):
+    """
+    Create a cluster map
+    ...
+
+    Arguments
+    ---------
+    g      : G_Local
+             Object from the computation of the G statistic
+    db     : GeoDataFrame
+             Table aligned with values in `g` and containing
+             the geometries to plot
+    ax     : AxesSubplot
+             `matplotlib` axis to draw the map on
+
+    Returns
+    -------
+    ax     : AxesSubplot
+             Axis with the map drawn
+    """
+    ec="0.8"
+    
+    z_mean = g.Zs.mean()
+    z_std = g.Zs.std()
+    g.Zs_normalized = (g.Zs - z_mean) / z_std
+
+    # Break observations into significant or not
+    sig = g.p_sim < 0.05
+
+    # Plot non-significant clusters
+    ns = db.loc[sig == False, "geometry"]
+    ns.plot(ax=ax, color="lightgrey", edgecolor=ec, linewidth=0.1, alpha=0.1)
+
+    # Plot HH clusters (Hotspots: Z > 1.96)
+    hh = db.loc[(g.Zs_normalized > 1.96) & (sig == True), "geometry"]
+    hh.plot(ax=ax, color="#0061ff", edgecolor=ec, linewidth=0.1)
+
+    # Plot LL clusters (Coldspots: Z < -1.96)
+    ll = db.loc[(g.Zs_normalized < -1.96) & (sig == True), "geometry"]
+    ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.7)
+    
+    # Style and draw
+    contextily.add_basemap(ax,
+        crs=db.crs,
+        source=contextily.providers.CartoDB.VoyagerNoLabels,
+    )
+    
+    # Flag to add a star to the title if it's G_i*
+    st = ""
+    if g.star:
+        st = "*"
+    # Add title
+    ax.set_title(f"Comparison of Standardised G{st} statistic between SHL and MHL Density by MSOA", size=13)
+    # Remove axis for aesthetics
+    ax.set_axis_off()
+
+    return ax
+```
+
+```{python}
+go_i2 = esda.getisord.G_Local(df2["density"], w)
+# Gi*
+go_i_star2 = esda.getisord.G_Local(df2["density"], w, star=True)
+
+def g_map2(g, db, ax):
+    """
+    Create a cluster map
+    ...
+
+    Arguments
+    ---------
+    g      : G_Local
+             Object from the computation of the G statistic
+    db     : GeoDataFrame
+             Table aligned with values in `g` and containing
+             the geometries to plot
+    ax     : AxesSubplot
+             `matplotlib` axis to draw the map on
+
+    Returns
+    -------
+    ax     : AxesSubplot
+             Axis with the map drawn
+    """
+    ec = "0.8"
+    
+    z_mean = g.Zs.mean()
+    z_std = g.Zs.std()
+    g.Zs_normalized = (g.Zs - z_mean) / z_std
+
+    # Break observations into significant or not
+    sig = g.p_sim < 0.05
+
+    # Plot non-significant clusters
+    ns = db.loc[sig == False, "geometry"]
+    ns.plot(ax=ax, color="lightgrey", edgecolor=ec, linewidth=0.1, alpha=0)
+
+    # Plot HH clusters (Hotspots: Z > 1.96)
+    hh = db.loc[(g.Zs_normalized > 1.96) & (sig == True), "geometry"]
+    hh.plot(ax=ax, color="#0061ff", edgecolor=ec, linewidth=0.1, alpha=0.2)
+
+    # Plot LL clusters (Coldspots: Z < -1.96)
+    ll = db.loc[(g.Zs_normalized < -1.96) & (sig == True), "geometry"]
+    ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.2)
+    
+    # Style and draw
+    contextily.add_basemap(ax,
+        crs=db.crs,
+        source=contextily.providers.CartoDB.VoyagerNoLabels,
+    )
+    
+    # Flag to add a star to the title if it's G_i*
+    st = ""
+    if g.star:
+        st = "*"
+    # Add title
+    ax.set_title(f"Comparison of Standardised G{st} statistic between SHL and MHL Listing Density by MSOA", size=13)
+    # Remove axis for aesthetics
+    ax.set_axis_off()
+
+    return ax
+```
+
+```{python}
+from matplotlib_scalebar.scalebar import ScaleBar
+import matplotlib.patches as patches
+
+# Create a single figure and axis
+f, ax = plt.subplots(1, 1, figsize=(12, 6))
+
+# Plot both maps on the same axis
+g_map2(go_i_star2, df2, ax)  
+sig2 = go_i_star2.p_sim < 0.05  # Use go_i_star2
+z_mean = go_i_star2.Zs.mean()
+z_std = go_i_star2.Zs.std()
+go_i_star2.Zs_normalized = (go_i_star2.Zs - z_mean) / z_std
+hh2 = df2.loc[(go_i_star2.Zs_normalized > 1.96) & (sig2 == True), "geometry"]
+
+g_map(go_i_star, df1, ax)  
+
+sig1 = go_i_star.p_sim < 0.05  # Use go_i_star
+z_mean = go_i_star.Zs.mean()
+z_std = go_i_star.Zs.std()
+go_i_star.Zs_normalized = (go_i_star.Zs - z_mean) / z_std
+hh3 = df1.loc[(go_i_star.Zs_normalized > 1.96) & (sig1 == True), "geometry"]
+
+hh2_geom = gpd.GeoSeries(hh2) 
+hh3_geom = gpd.GeoSeries(hh3) 
+
+# Spatial difference: Geometries in hh3 but not in hh2
+unique_hh3 = hh3_geom.difference(hh2_geom.unary_union)
+# Remove empty geometries
+unique_hh3 = unique_hh3[~unique_hh3.is_empty]
+
+# Plot unique hotspots of multiple properties host density 
+ec = "0.8"
+unique_hh3.plot(ax=ax, color="#ff5c00", edgecolor=ec, linewidth=0.1)
+
+boro.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=0.3)
+
+
+for idx, row in boro.iterrows():
+    # Get the centroid of each polygon
+    centroid = row.geometry.centroid
+    # Plot the text at the centroid location
+    ax.text(centroid.x, centroid.y, row['NAME'], fontsize=5, ha='center')
+
+# Add a scalebar
+scalebar = ScaleBar(1, units="m", length_fraction=0.2,location='upper right')  
+ax.add_artist(scalebar)
+ 
+#blue_patch_low = mpatches.Patch(color="blue", alpha=0.3, label="Cold Spots of Single Property Host Density")
+red_patch_low = patches.Patch(color="#0061ff", alpha=0.3, label="Unique Hot Spots of Single-Unit Host Listings Density")
+#blue_patch_high = mpatches.Patch(color="blue", alpha=0.7, label="Cold Spots of Multiple Properties Host Density")
+red_patch_high = patches.Patch(color="#0061ff", alpha=0.7, label="Hot Spots of Both Host Listings Density")
+green = patches.Patch(color="#ff5c00", alpha=0.8, label="Unique Hot Spots of Multi-Unit Host Listings Density")
+#ax.legend(handles=[blue_patch_low, red_patch_low, blue_patch_high, red_patch_high, green], loc='lower right', fontsize=8)
+ax.legend(handles=[red_patch_low, red_patch_high, green], loc='lower right', fontsize=8)
+
+boro_bounds = boro.total_bounds 
+ax.set_xlim(boro_bounds[0], boro_bounds[2])  # minx, maxx
+ax.set_ylim(boro_bounds[1], boro_bounds[3])  # miny, maxy
+
+contextily.add_basemap(ax,
+        crs=df1.crs,
+        source=contextily.providers.CartoDB.VoyagerNoLabels)
+
+
+
+
+# Tight layout to minimise blank spaces
+f.tight_layout()
+
+# Render the plot
+plt.show()
+```
+
+From figure 4, we observe that while hotspots of both SHL and MHL are clustered in Central London, unique hotspots of MHL are found nearer to popular tourist attractions in boroughs such as Westminster and Kensington & Chelsea. Unique hotspots of SHL are found further away in Boroughs of Islington and Hackney. This suggests that there exists a distinction of central London locations where single- and multi-unit hosts operate, with multi-unit hosts being able to operate in the most exclusive areas of central London.
+However, the clusters of both SHL and MHL also suggests that a spatial regulation of Airbnbs through zoning or spatial bans as seen in other cities may not be effective in curbing commercialisation of Airbnb as both clusters are close geographical proximities, with a lack of borough-level dominance of a particular listing type. This makes it difficult to single out MHL which may unintentionally disadvantage single-unit hosts who rely on Airbnb for supplemental income instead of multi-unit hosts who often operate as businesses. 
+Instead, policy interventions could target hosts based on whether they are single- or multi-unit hosts. Multi-unit hosts could be subjected to stricter regulations, such as specific multi-unit licenses and higher tax rates, with the overall objective of assuaging the impacts of over-commercialisation of short-term lets. 
 
 ## Sustainable Authorship Tools
-
 Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
 
 Your QMD file should automatically download your BibTeX and CLS files and any other required files. If this is done right after library loading then the entire report should output successfully.
