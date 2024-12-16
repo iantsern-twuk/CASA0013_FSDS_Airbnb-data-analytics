@@ -46,6 +46,33 @@ jupyter:
     name: base
 ---
 
+## Declaration of Authorship {.unnumbered .unlisted}
+
+We, Jessica Ebner-Statt, Cerys Edwards, Jin Wen Kee, Jiayi Low, and Chung-En Tsern, pledge our honour that the work presented in this assessment is our own. Where information has been derived from other sources, we confirm that this has been indicated in the work. Where a Large Language Model such as ChatGPT has been used we confirm that we have made its contribution to the final submission clear.
+
+Date: 17 December 2024
+
+Student Numbers: 24088089, 23197499, 19017015, 21119312, 23212203 (in order)
+
+## Brief Group Reflection
+
+| What Went Well | What Was Challenging |
+| :--------------: | :--------------------: |
+| Pooling/Sharing information              | Identifying a meaningful research direction                    |
+| Delegating tasks based on strengths, interests, and experience              | Identifying an appropriate metric of Airbnb occupancy                    |
+| Self-directed learning for code and analysis methods              | Coding for the outputs we had in mind                    |
+
+
+## Priorities for Feedback
+
+Are there any areas on which you would appreciate more detailed feedback if we're able to offer it?
+* Efficacy and clarity of visualisations
+* Methods used
+
+{{< pagebreak >}}
+
+# Response to Questions
+
 ```{python}
 #| echo: false
 import os
@@ -129,7 +156,7 @@ Just like how individual privacy is an ethical concern, organisations have a rig
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
 __Room types__
 
-Firstly, analysing the categories of Airbnb listing types reveals that the nature of room types available has changed over time. Looking at room type data from 2021 to 2024, we identified a rise in the proportion of listings that were entire homes (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This suggests an overall shift in Airbnb activity: that there is increasing demand from tenants to rent entire-home Airbnbs, and that more hosts are listing entire homes to meet that demand, deviating from Airbnb’s claims to a “sharing economy” [@minton-23]. Subsequently, an exploration of where in London this change is occurring most significantly reveals that entire-home listings remain predominant in central London but have steadily expanded outwards over the years.
+An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home listings. From data on room types, we identified a rise in the proportion of entire-home listings (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This reflects growing demand for entire-home rentals, challenging Airbnb’s claims to a “sharing economy” [@minton-23]. An exploration of where this change is occurring (Figure 1) reveals that entire-home listings remain concentrated in central London but have steadily expanded outward over time.
 
 ```{python}
 # data source
@@ -211,7 +238,8 @@ plt.show()
 ```
 
 __Multiple-listing hosts__
-Equally noteworthy is an analysis of multiple-listing hosts (hosts with more than 1 room/home listed). As IA notes, multiple listings are associated with commercial hosts [@insideairbnb_2024], who often escape housing and land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018] and thus warrant greater scrutiny. Our analysis of the proportions of hosts possessing single (=1) and multiple properties (>=2) revealed that the percentage of multiple-listing hosts increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, indicating that the proportion of multiple-listing hosts is growing to occupy more of the listings market. The bar chart below visualising the change in number of listings owned by multiple- and single-listing hosts over the past 4 years confirms a steady growth in the presence of multiple-listing hosts.
+
+Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts [@insideairbnb_2024], who often escape housing/land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018], thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.
 
 ```{python}
 url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
