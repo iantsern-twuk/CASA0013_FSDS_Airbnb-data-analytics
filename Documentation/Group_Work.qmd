@@ -80,7 +80,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 from shapely.geometry import Point
 import geopandas as gpd
 import contextily as ctx
@@ -92,7 +91,11 @@ import xarray  # Surface data manipulation
 from pysal.explore import esda  # Exploratory Spatial analytics
 from pysal.lib import weights  # Spatial weights
 from matplotlib_scalebar.scalebar import ScaleBar
-import contextily
+import warnings
+from requests import get
+from urllib.parse import urlparse
+from functools import wraps
+from esda.getisord import G_Local
 
 # Setting default font
 #plt.rcParams['font.family'] = "Liberation Serif"
@@ -112,7 +115,6 @@ def download_bib_file(url, output_path):
             print(f"Failed to render document: {e}")
 
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
-
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
 ```
 
@@ -136,15 +138,12 @@ Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by 
 IA data seeks to challenge official data from Airbnb, which may be misrepresentative of its operations and impact [@slee_2016]. It offers an alternative perspective to Airbnb’s (limited) publicly available data by purposefully representing it through datasets and visualisations, with the not-for-profit goal of helping cities and communities to make informed decisions concerning Airbnb’s operations [@insideairbnb]. In doing so, IA increases data accessibility on Airbnb’s impacts on residential neighbourhoods worldwide, especially with regard to quantifying the ramifications of short-term lets [@wang_2024] on local communities.  
 
 ## 3. How did they collect it?
-The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]). The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
-
-
+The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]. The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
 As a scrape of Airbnb's website rather than the raw data themselves, the final IA datasets have potential biases and quality issues that should be taken into account by analysts and legislators using them to inform policy. Web-scraping only extracts publicly-available information on Airbnb’s website at the time the script is run: this means it cannot capture deleted listings or exact listing locations, as Airbnb anonymises these for privacy reasons [@prentice_2023]. In addition, Airbnb’s website does not differentiate between when listings are booked or blocked by their host [@crommelin_2018], meaning IA has to use review counts to roughly estimate occupancy rates. However, the process of scraping and processing by IA itself also introduces uncertainty. The web scrapes’ reservation query settings affect the data retrieved, meaning listings may be undercounted if they do not match the search’s parameters [@prentice_2023]. Furthermore, @alsudais_2021 found inaccuracies in the way IA had joined reviews and listing IDs.
 
 Moreover, it is important to remember that Airbnb’s raw data is not necessarily accurate in the first place. Some listings may be fake, duplicates, or inactive [@adamiak_2022]. Finally, the IA data cannot capture short-term letting (STL) transactions through other platforms [@prentice_2023]. This raises the question of whether IA data alone can provide a holistic understanding of the STL market.
-
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 The use of InsideAirbnb data raises a few ethical concerns due to the collection of the data through web scraping. Using an ethics framework developed by @krotov_2020 in their paper, the ethical concerns of web scraping Airbnb’s data can be categorised into infringement of individual and organisational privacy, rights of research subjects, data quality and discrimination. These categories are very applicable and in the case of IA, researchers should always be aware of identifying possible harm to individuals, organisations and enact precautionary measures to avoid these harms. 
@@ -160,22 +159,79 @@ An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home li
 
 ```{python}
 # data source
+url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
+url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2021_listings.csv.gz'
+url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
+url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
 cleaned_2021 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2021_listings_clean.csv"
 cleaned_2022 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2022_listings_clean.csv"
 cleaned_2023 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2023_listings_clean.csv"
 cleaned_2024 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2024_listings_clean.csv"
-url_msoa_map = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/MSOA_2011_London_gen_MHW.shp'
-url_boro_map = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/London_Borough_Excluding_MHW.shp'
+base_url = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/'
+files = {
+    'MSOA_2011_London_gen_MHW': ['.shp', '.shx', '.dbf', '.prj'],
+    'London_Borough_Excluding_MHW': ['.shp', '.shx', '.dbf', '.prj']
+}
 ```
 
 ```{python}
-listings_2021 = pd.read_csv(cleaned_2021, low_memory = False)
-listings_2022 = pd.read_csv(cleaned_2022, low_memory = False)
-listings_2023 = pd.read_csv(cleaned_2023, low_memory = False)
-listings_2024 = pd.read_csv(cleaned_2024, low_memory = False)
-df_msoa_map = gpd.read_file(url_msoa_map)
-boro = gpd.read_file(url_boro_map)
+def check_cache(f):
+    @wraps(f)
+    def wrapper(src, dst, min_size=100):
+        url = urlparse(src)
+        fn = os.path.split(url.path)[-1]
+        dsn = os.path.join(dst, fn)
+        if os.path.isfile(dsn) and os.path.getsize(dsn) > min_size:
+            #print(f"+ {dsn} found locally!")
+            return dsn
+        else:
+            #print(f"+ {dsn} not found, downloading!")
+            return f(src, dsn)
+    return wrapper
+
+@check_cache
+def cache_data(src: str, dst: str) -> str:
+    path = os.path.split(dst)[0]
+    if path != '':
+        os.makedirs(path, exist_ok=True)
+    with open(dst, "wb") as file:
+        response = get(src)
+        file.write(response.content)
+    print(' + Done downloading...')
+    return dst
 ```
+```{python}
+
+def download_listings(file_path, url):
+    import requests
+    response = requests.get(url)
+    response.raise_for_status()
+    with open(file_path, 'wb') as f:
+        f.write(response.content)
+
+listings_2021_path = cache_data(cleaned_2021, "2021_listings_clean.csv")
+listings_2022_path = cache_data(cleaned_2022, "2022_listings_clean.csv")
+listings_2023_path = cache_data(cleaned_2023, "2023_listings_clean.csv")
+listings_2024_path = cache_data(cleaned_2024, "2024_listings_clean.csv")
+
+listings_2021 = pd.read_csv(listings_2021_path)
+listings_2022 = pd.read_csv(listings_2022_path)
+listings_2023 = pd.read_csv(listings_2023_path)
+listings_2024 = pd.read_csv(listings_2024_path)
+
+
+os.makedirs('shapefiles', exist_ok=True)
+for name, extensions in files.items():
+    for ext in extensions:
+        file_path = f'shapefiles/{name}{ext}'
+        url = f"{base_url}{name}{ext}"
+        download_listings(file_path, url)
+
+df_msoa_map = gpd.read_file('shapefiles/MSOA_2011_London_gen_MHW.shp')
+boro = gpd.read_file('shapefiles/London_Borough_Excluding_MHW.shp')
+
+```
+
 
 ```{python}
 # Now plotting entire home listing density by MSOA
@@ -241,43 +297,12 @@ __Multiple-listing hosts__
 
 Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts [@insideairbnb_2024], who often escape housing/land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018], thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.
 
-```{python}
-url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
-url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2021_listings.csv.gz'
-url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
-url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
-```
-
-```{python}
-listings_2021 = pd.read_csv(cleaned_2021, low_memory = False)
-```
-
-```{python}
-listings_2022 = pd.read_csv(cleaned_2022, low_memory = False)
-```
-
-```{python}
-listings_2023 = pd.read_csv(cleaned_2023, low_memory = False)
-```
-
-```{python}
-listings_2024 = pd.read_csv(cleaned_2024, low_memory = False)
-```
 
 ```{python}
 df_listings_2024 = pd.read_csv(url_listings_2024, compression='gzip', low_memory=False)
-```
-
-```{python}
-df_listings_2021 = pd.read_csv(url_listings_2021, compression='gzip', low_memory=False)
-```
-
-```{python}
-df_listings_2022 = pd.read_csv(url_listings_2022, compression='gzip', low_memory=False)
-```
-
-```{python}
 df_listings_2023 = pd.read_csv(url_listings_2023, compression='gzip', low_memory=False)
+df_listings_2022 = pd.read_csv(url_listings_2022, compression='gzip', low_memory=False)
+df_listings_2021 = pd.read_csv(url_listings_2021, compression='gzip', low_memory=False)
 ```
 
 ```{python}
@@ -378,7 +403,7 @@ These trends in room and host types point towards the increasing commercialisati
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-## ---------------- jess ----------------
+## ---------------- Jess ----------------
 
 Having assessed the efficacy of the 90-day policy along a temporal scale, we now consider the spatial implications of policies that aim to curb the expansion of commercialised Airbnbs in London. The effects of multi-unit hosts are well documented in the literature; @wachsmuth_2018 reported that gentrification and reduced rental opportunities were rampant in neighbourhoods with a strong presence of multi-unit hosts, consequently transforming Airbnb’s peer-to-peer sharing economy platform to a professional hosts-to-peer business operator. To identify spatial clusters of single-unit host and multi-unit host listings, we first aggregated counts of Single-unit Host Listings (SHL) and Multi-unit Host Listings (MHL) into count per square kilometers (listing density) in each Middle Super Output Area (MSOA). Getis-Ord G* statistic was then employed to determine hot and cold spots of SHL and MHL density. Due to the granularity of the MSOA layer, the G* statistic was calculated using k=8 neighbours to ensure that sufficient local patterns are captured. The G* z-scores are also standardised, making the both SHL and MHL densities comparable.
 
@@ -505,9 +530,9 @@ def g_map(g, db, ax):
     ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.7)
     
     # Style and draw
-    contextily.add_basemap(ax,
+    ctx.add_basemap(ax,
         crs=db.crs,
-        source=contextily.providers.CartoDB.VoyagerNoLabels,
+        source=ctx.providers.CartoDB.VoyagerNoLabels,
     )
     
     # Flag to add a star to the title if it's G_i*
@@ -569,9 +594,9 @@ def g_map2(g, db, ax):
     ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.2)
     
     # Style and draw
-    contextily.add_basemap(ax,
+    ctx.add_basemap(ax,
         crs=db.crs,
-        source=contextily.providers.CartoDB.VoyagerNoLabels,
+        source=ctx.providers.CartoDB.VoyagerNoLabels,
     )
     
     # Flag to add a star to the title if it's G_i*
@@ -587,23 +612,28 @@ def g_map2(g, db, ax):
 ```
 
 ```{python}
-from matplotlib_scalebar.scalebar import ScaleBar
-import matplotlib.patches as patches
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
 
-# Create a single figure and axis
 f, ax = plt.subplots(1, 1, figsize=(12, 6))
 
+w = weights.distance.KNN.from_dataframe(df1, k=8)
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
+
 # Plot both maps on the same axis
+go_i_star2 = esda.getisord.G_Local(df2["density"], w, star=True)
 g_map2(go_i_star2, df2, ax)  
-sig2 = go_i_star2.p_sim < 0.05  # Use go_i_star2
+sig2 = go_i_star2.p_sim < 0.05
 z_mean = go_i_star2.Zs.mean()
 z_std = go_i_star2.Zs.std()
 go_i_star2.Zs_normalized = (go_i_star2.Zs - z_mean) / z_std
 hh2 = df2.loc[(go_i_star2.Zs_normalized > 1.96) & (sig2 == True), "geometry"]
 
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
 g_map(go_i_star, df1, ax)  
 
-sig1 = go_i_star.p_sim < 0.05  # Use go_i_star
+sig1 = go_i_star.p_sim < 0.05
 z_mean = go_i_star.Zs.mean()
 z_std = go_i_star.Zs.std()
 go_i_star.Zs_normalized = (go_i_star.Zs - z_mean) / z_std
@@ -623,7 +653,6 @@ unique_hh3.plot(ax=ax, color="#ff5c00", edgecolor=ec, linewidth=0.1)
 
 boro.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=0.3)
 
-
 for idx, row in boro.iterrows():
     # Get the centroid of each polygon
     centroid = row.geometry.centroid
@@ -631,27 +660,21 @@ for idx, row in boro.iterrows():
     ax.text(centroid.x, centroid.y, row['NAME'], fontsize=5, ha='center')
 
 # Add a scalebar
-scalebar = ScaleBar(1, units="m", length_fraction=0.2,location='upper right')  
+scalebar = ScaleBar(1, units="m", length_fraction=0.2, location='upper right')  
 ax.add_artist(scalebar)
- 
-#blue_patch_low = mpatches.Patch(color="blue", alpha=0.3, label="Cold Spots of Single Property Host Density")
-red_patch_low = patches.Patch(color="#0061ff", alpha=0.3, label="Unique Hot Spots of Single-Unit Host Listings Density")
-#blue_patch_high = mpatches.Patch(color="blue", alpha=0.7, label="Cold Spots of Multiple Properties Host Density")
-red_patch_high = patches.Patch(color="#0061ff", alpha=0.7, label="Hot Spots of Both Host Listings Density")
-green = patches.Patch(color="#ff5c00", alpha=0.8, label="Unique Hot Spots of Multi-Unit Host Listings Density")
-#ax.legend(handles=[blue_patch_low, red_patch_low, blue_patch_high, red_patch_high, green], loc='lower right', fontsize=8)
+
+red_patch_low = Patch(color="#0061ff", alpha=0.3, label="Unique Hot Spots of Single-Unit Host Listings Density")
+red_patch_high = Patch(color="#0061ff", alpha=0.7, label="Hot Spots of Both Host Listings Density")
+green = Patch(color="#ff5c00", alpha=0.8, label="Unique Hot Spots of Multi-Unit Host Listings Density")
 ax.legend(handles=[red_patch_low, red_patch_high, green], loc='lower right', fontsize=8)
 
 boro_bounds = boro.total_bounds 
 ax.set_xlim(boro_bounds[0], boro_bounds[2])  # minx, maxx
 ax.set_ylim(boro_bounds[1], boro_bounds[3])  # miny, maxy
 
-contextily.add_basemap(ax,
+ctx.add_basemap(ax,
         crs=df1.crs,
-        source=contextily.providers.CartoDB.VoyagerNoLabels)
-
-
-
+        source=ctx.providers.CartoDB.VoyagerNoLabels)
 
 # Tight layout to minimise blank spaces
 f.tight_layout()
