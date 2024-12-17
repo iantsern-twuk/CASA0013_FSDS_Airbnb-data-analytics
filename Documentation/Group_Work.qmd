@@ -19,9 +19,9 @@ format:
     include-in-header:
       text: |
         \addtokomafont{disposition}{\rmfamily}
-    mainfont: Liberation Serif
-    sansfont: Liberation Sans
-    monofont: Liberation Mono
+    mainfont: Times
+    sansfont: Times
+    monofont: Times
     papersize: a4
     geometry:
       - top=25mm
@@ -97,8 +97,9 @@ def download_bib_file(url, output_path):
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
 ```
+
 ## 0. Docker command
-Please render this document with the following command: ⁠ quarto render Group_Work.qmd --to pdf --pdf-engine=pdflatex ⁠
+Please render this document with the following command: quarto render Group_Work.qmd --to pdf --pdf-engine=pdflatex
 
 ## 1. Who collected the InsideAirbnb data?
 Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists [@insideairbnb].
@@ -1175,9 +1176,5 @@ plt.show()
 From figure 4, we observe that while hotspots of both SHL and MHL are clustered in Central London, unique hotspots of MHL are found nearer to popular tourist attractions in boroughs such as Westminster and Kensington & Chelsea. Unique hotspots of SHL are found further away in Boroughs of Islington and Hackney. This suggests that there exists a distinction of central London locations where single- and multi-unit hosts operate, with multi-unit hosts being able to operate in the most exclusive areas of central London.
 However, the clusters of both SHL and MHL also suggests that a spatial regulation of Airbnbs through zoning or spatial bans as seen in other cities may not be effective in curbing commercialisation of Airbnb as both clusters are close geographical proximities, with a lack of borough-level dominance of a particular listing type. This makes it difficult to single out MHL which may unintentionally disadvantage single-unit hosts who rely on Airbnb for supplemental income instead of multi-unit hosts who often operate as businesses. 
 Instead, policy interventions could target hosts based on whether they are single- or multi-unit hosts. Multi-unit hosts could be subjected to stricter regulations, such as specific multi-unit licenses and higher tax rates, with the overall objective of assuaging the impacts of over-commercialisation of short-term lets. 
-
-## Sustainable Authorship Tools
-
-Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Liberation Serif](https://fonts.adobe.com/fonts/liberation-serif) (mainfont), [Liberation Sans](https://fonts.adobe.com/fonts/liberation-sans) (<span style="font-family:Sans-Serif;">sansfont</span>) and [Liberation Mono](https://fonts.google.com/specimen/Liberation-Mono) (`monofont`). 
 
 ## References
