@@ -41,9 +41,9 @@ jupyter:
       format_version: '1.0'
       jupytext_version: 1.16.4
   kernelspec:
-    display_name: Python (base)
+    display_name: Python (myenv)
     language: python
-    name: base
+    name: myenv
 ---
 
 ## Declaration of Authorship {.unnumbered .unlisted}
@@ -96,6 +96,12 @@ from requests import get
 from urllib.parse import urlparse
 from functools import wraps
 from esda.getisord import G_Local
+import datetime as dt
+import duckdb as db
+import statsmodels.api as sm
+from scipy.stats import chi2_contingency
+from scipy.stats import ttest_rel
+import statsmodels.formula.api as smf
 
 # Setting default font
 #plt.rcParams['font.family'] = "Liberation Serif"
@@ -116,19 +122,6 @@ def download_bib_file(url, output_path):
 
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
-```
-
-```{python}
-#| echo: false
-host = 'https://orca.casa.ucl.ac.uk'
-path = '~jreades/data'
-file = '20240614-London-listings.parquet'
-
-if os.path.exists(file):
-  df = pd.read_parquet(file)
-else: 
-  df = pd.read_parquet(f'{host}/{path}/{file}')
-  df.to_parquet(file)
 ```
 
 ## 1. Who collected the InsideAirbnb data?
@@ -158,16 +151,14 @@ __Room types__
 An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home listings. From data on room types, we identified a rise in the proportion of entire-home listings (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This reflects growing demand for entire-home rentals, challenging Airbnb’s claims to a “sharing economy” [@minton-23]. An exploration of where this change is occurring (Figure 1) reveals that entire-home listings remain concentrated in central London but have steadily expanded outward over time.
 
 ```{python}
-# data source
+# data sources
 url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
 url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2021_listings.csv.gz'
 url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
 url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
-cleaned_2021 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2021_listings_clean.csv"
-cleaned_2022 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2022_listings_clean.csv"
-cleaned_2023 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2023_listings_clean.csv"
-cleaned_2024 = "https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/clean/2024_listings_clean.csv"
 base_url = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/'
+reviews = 'https://orca.casa.ucl.ac.uk/~jreades/data/20240614-London-listings.csv.gz'
+
 files = {
     'MSOA_2011_London_gen_MHW': ['.shp', '.shx', '.dbf', '.prj'],
     'London_Borough_Excluding_MHW': ['.shp', '.shx', '.dbf', '.prj']
@@ -201,7 +192,6 @@ def cache_data(src: str, dst: str) -> str:
     return dst
 ```
 ```{python}
-
 def download_listings(file_path, url):
     import requests
     response = requests.get(url)
@@ -209,16 +199,15 @@ def download_listings(file_path, url):
     with open(file_path, 'wb') as f:
         f.write(response.content)
 
-listings_2021_path = cache_data(cleaned_2021, "2021_listings_clean.csv")
-listings_2022_path = cache_data(cleaned_2022, "2022_listings_clean.csv")
-listings_2023_path = cache_data(cleaned_2023, "2023_listings_clean.csv")
-listings_2024_path = cache_data(cleaned_2024, "2024_listings_clean.csv")
+listings_2021_path = cache_data(url_listings_2021, "2021_listings.csv.gz")
+listings_2022_path = cache_data(url_listings_2022, "2022_listings.csv.gz")
+listings_2023_path = cache_data(url_listings_2023, "2023_listings.csv.gz")
+listings_2024_path = cache_data(url_listings_2024, "listings.csv.gz")
 
-listings_2021 = pd.read_csv(listings_2021_path)
-listings_2022 = pd.read_csv(listings_2022_path)
-listings_2023 = pd.read_csv(listings_2023_path)
-listings_2024 = pd.read_csv(listings_2024_path)
-
+df_listings_2024 = pd.read_csv(listings_2024_path, compression='gzip', low_memory=False)
+df_listings_2023 = pd.read_csv(listings_2023_path, compression='gzip', low_memory=False)
+df_listings_2022 = pd.read_csv(listings_2022_path, compression='gzip', low_memory=False)
+df_listings_2021 = pd.read_csv(listings_2021_path, compression='gzip', low_memory=False)
 
 os.makedirs('shapefiles', exist_ok=True)
 for name, extensions in files.items():
@@ -234,8 +223,18 @@ boro = gpd.read_file('shapefiles/London_Borough_Excluding_MHW.shp')
 
 
 ```{python}
-# Now plotting entire home listing density by MSOA
+# Identifying and selecting relevant columns from listings datasets
+columns_q6a = ['id', 'listing_url', 'latitude', 'longitude', 'property_type', 'room_type']
+listings2021_q6a = df_listings_2021[columns_q6a]
+listings2022_q6a = df_listings_2022[columns_q6a]
+listings2023_q6a = df_listings_2023[columns_q6a]
+listings2024_q6a = df_listings_2024[columns_q6a]
+
+# Plotting entire-home listings by MSOA
+
+# Creating function to calculate proportion of entire-home listings from a listings dataset
 def entire_home_map_msoa(listings):
+    
     # create geodataframe
     geolistings = gpd.GeoDataFrame(listings,geometry = gpd.points_from_xy(listings.longitude,listings.latitude,crs ='epsg:4326'))
     
@@ -265,7 +264,7 @@ def entire_home_map_msoa(listings):
     return msoas
 
 # Years to plot
-listings_list = [listings_2021,listings_2022,listings_2023,listings_2024]
+listings_list = [listings2021_q6a,listings2022_q6a,listings2023_q6a,listings2024_q6a]
 
 # Create a plot with 4 subplots (one for each year)
 fig, axes = plt.subplots(1, 4, figsize=(24, 6))
@@ -403,7 +402,17 @@ These trends in room and host types point towards the increasing commercialisati
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-## ---------------- Jess ----------------
+As indicated above, although Airbnb was initially conceived of and portrayed as a small-scale, peer-to-peer exchange platform, its rapid expansion and shift towards entire homes and multi-unit hosts has led to concerns about rent increases, lost hotel and income tax revenues, and even gentrification and displacement (Huebscher and Borst, 2023). In response to these challenges, hosts in Greater London are limited to renting out ‘entire home’ listings for a maximum of 90 nights annually: a regulation introduced in January 2017 (Airbnb, 2017). In this section, we seek to assess the efficacy of this 90-day regulation in curbing the expansion of commercialised Airbnb listings, and consider whether other approaches may be more effective.
+
+### Temporal Regulation
+
+Beginning with the 90-night limit, we first ask whether the policy reduced the proportion of entire home listings over 90 nights relative to other room types. The null hypothesis posits no difference in the proportion of entire home listings exceeding 90 nights compared to single room listings before and after the policy was imposed, while the alternate hypothesis suggests a change occurred.
+
+A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts Wang et al.’s (2024) occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute*changes or proportions, we can compare figures over time to consider relative occupancy trends.
+
+JESS REMEMBER TO TEST CODE OUTPUTS WITH NEW DAta source
+
+### Spatial Regulation
 
 Having assessed the efficacy of the 90-day policy along a temporal scale, we now consider the spatial implications of policies that aim to curb the expansion of commercialised Airbnbs in London. The effects of multi-unit hosts are well documented in the literature; @wachsmuth_2018 reported that gentrification and reduced rental opportunities were rampant in neighbourhoods with a strong presence of multi-unit hosts, consequently transforming Airbnb’s peer-to-peer sharing economy platform to a professional hosts-to-peer business operator. To identify spatial clusters of single-unit host and multi-unit host listings, we first aggregated counts of Single-unit Host Listings (SHL) and Multi-unit Host Listings (MHL) into count per square kilometers (listing density) in each Middle Super Output Area (MSOA). Getis-Ord G* statistic was then employed to determine hot and cold spots of SHL and MHL density. Due to the granularity of the MSOA layer, the G* statistic was calculated using k=8 neighbours to ensure that sufficient local patterns are captured. The G* z-scores are also standardised, making the both SHL and MHL densities comparable.
 
@@ -479,6 +488,10 @@ df2 = df[df['year'] == year]
 ```
 
 ```{python}
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
+
+#Rey, S., Arribas-Bel, D. and Wolf, L.J., 2023. Geographic data science with python. Chapman and Hall/CRC.Spatial Autocorrelation code was implemented with the help of a tutorial found in Geographic Data Science with Python by Rey et al.
+
 w = weights.distance.KNN.from_dataframe(df1, k=8)
 # Row-standardization
 w.transform = "R"
@@ -548,6 +561,8 @@ def g_map(g, db, ax):
 ```
 
 ```{python}
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
+
 go_i2 = esda.getisord.G_Local(df2["density"], w)
 # Gi*
 go_i_star2 = esda.getisord.G_Local(df2["density"], w, star=True)

@@ -145,12 +145,6 @@ div.csl-indent {
 </section>
 <section id="response-to-questions" class="level1">
 <h1>Response to Questions</h1>
-<div id="bd3ec411" class="cell" data-execution_count="1">
-<div class="cell-output cell-output-stderr">
-<pre><code>/Users/tsernian/Documents/CASA/CASA0013_FSDS/myenv/lib/python3.9/site-packages/spaghetti/network.py:40: FutureWarning: The next major release of pysal/spaghetti (2.0.0) will drop support for all ``libpysal.cg`` geometries. This change is a first step in refactoring ``spaghetti`` that is expected to result in dramatically reduced runtimes for network instantiation and operations. Users currently requiring network and point pattern input as ``libpysal.cg`` geometries should prepare for this simply by converting to ``shapely`` geometries.
-  warnings.warn(dep_msg, FutureWarning, stacklevel=1)</code></pre>
-</div>
-</div>
 <section id="who-collected-the-insideairbnb-data" class="level2">
 <h2 class="anchored" data-anchor-id="who-collected-the-insideairbnb-data">1. Who collected the InsideAirbnb data?</h2>
 <p>Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists <span class="citation" data-cites="insideairbnb">(<a href="#ref-insideairbnb" role="doc-biblioref"><span>“Inside airbnb,”</span> n.d.</a>)</span>.</p>
@@ -178,7 +172,7 @@ div.csl-indent {
 <h2 class="anchored" data-anchor-id="with-reference-to-the-insideairbnb-data-i.e.-using-numbers-figures-maps-and-descriptive-statistics-what-does-an-analysis-of-hosts-and-the-types-of-properties-that-they-list-suggest-about-the-nature-of-airbnb-lettings-in-london">6. With reference to the InsideAirbnb data (<em>i.e.</em> using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London?</h2>
 <p><strong>Room types</strong></p>
 <p>An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home listings. From data on room types, we identified a rise in the proportion of entire-home listings (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This reflects growing demand for entire-home rentals, challenging Airbnb’s claims to a “sharing economy” <span class="citation" data-cites="minton-23">(<a href="#ref-minton-23" role="doc-biblioref"><strong>minton-23?</strong></a>)</span>. An exploration of where this change is occurring (Figure 1) reveals that entire-home listings remain concentrated in central London but have steadily expanded outward over time.</p>
-<div id="5d75f702" class="cell" data-execution_count="7">
+<div id="edb9d751" class="cell" data-execution_count="7">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -189,7 +183,7 @@ div.csl-indent {
 </div>
 <p><strong>Multiple-listing hosts</strong></p>
 <p>Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts <span class="citation" data-cites="insideairbnb_2024">(<a href="#ref-insideairbnb_2024" role="doc-biblioref">InsideAirbnb, no date</a>)</span>, who often escape housing/land-use policies and taxation applicable to traditional landlords <span class="citation" data-cites="wachsmuth_2018">(<a href="#ref-wachsmuth_2018" role="doc-biblioref">Wachsmuth and Weisler, 2018</a>)</span>, thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.</p>
-<div id="15705106" class="cell" data-execution_count="12">
+<div id="686575d8" class="cell" data-execution_count="12">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -206,19 +200,7 @@ div.csl-indent {
 <section id="jess--" class="level2">
 <h2 class="anchored" data-anchor-id="jess--">—————- Jess —————-</h2>
 <p>Having assessed the efficacy of the 90-day policy along a temporal scale, we now consider the spatial implications of policies that aim to curb the expansion of commercialised Airbnbs in London. The effects of multi-unit hosts are well documented in the literature; <span class="citation" data-cites="wachsmuth_2018">Wachsmuth and Weisler (<a href="#ref-wachsmuth_2018" role="doc-biblioref">2018</a>)</span> reported that gentrification and reduced rental opportunities were rampant in neighbourhoods with a strong presence of multi-unit hosts, consequently transforming Airbnb’s peer-to-peer sharing economy platform to a professional hosts-to-peer business operator. To identify spatial clusters of single-unit host and multi-unit host listings, we first aggregated counts of Single-unit Host Listings (SHL) and Multi-unit Host Listings (MHL) into count per square kilometers (listing density) in each Middle Super Output Area (MSOA). Getis-Ord G* statistic was then employed to determine hot and cold spots of SHL and MHL density. Due to the granularity of the MSOA layer, the G* statistic was calculated using k=8 neighbours to ensure that sufficient local patterns are captured. The G* z-scores are also standardised, making the both SHL and MHL densities comparable.</p>
-<div id="d701e06e" class="cell" data-execution_count="16">
-<div class="cell-output cell-output-stderr">
-<pre><code>/Users/tsernian/Documents/CASA/CASA0013_FSDS/myenv/lib/python3.9/site-packages/esda/getisord.py:615: UserWarning: Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.
-  warnings.warn(</code></pre>
-</div>
-</div>
-<div id="43300830" class="cell" data-execution_count="17">
-<div class="cell-output cell-output-stderr">
-<pre><code>/Users/tsernian/Documents/CASA/CASA0013_FSDS/myenv/lib/python3.9/site-packages/esda/getisord.py:615: UserWarning: Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.
-  warnings.warn(</code></pre>
-</div>
-</div>
-<div id="f84c573a" class="cell" data-execution_count="18">
+<div id="a6bde4a9" class="cell" data-execution_count="18">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
