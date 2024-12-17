@@ -1,0 +1,1180 @@
+---
+bibliography: bio.bib
+csl: harvard-cite-them-right.csl
+title: 'CASA0013 Group Work: Living la Vida Code-a'
+execute:
+  echo: false
+  freeze: true
+format:
+  html:
+    code-copy: true
+    code-link: true
+    toc: true
+    toc-title: On this page
+    toc-depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+  pdf:
+    include-in-header:
+      text: |
+        \addtokomafont{disposition}{\rmfamily}
+    mainfont: Times
+    sansfont: Times
+    monofont: Times
+    papersize: a4
+    geometry:
+      - top=25mm
+      - left=25mm
+      - right=25mm
+      - bottom=25mm
+      - heightrounded
+    toc: false
+    number-sections: false
+    colorlinks: true
+    highlight-style: github
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.4
+  kernelspec:
+    display_name: Python (base)
+    language: python
+    name: base
+---
+
+```{python}
+#| echo: false
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module='spaghetti')
+
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from shapely.geometry import Point
+import geopandas as gpd
+import contextily as ctx
+from matplotlib.patches import Patch
+from matplotlib.gridspec import GridSpec
+from matplotlib import colors
+import rioxarray  # Surface data manipulation
+import xarray  # Surface data manipulation
+from pysal.explore import esda  # Exploratory Spatial analytics
+from pysal.lib import weights  # Spatial weights
+from matplotlib_scalebar.scalebar import ScaleBar
+from requests import get
+from urllib.parse import urlparse
+from functools import wraps
+from esda.getisord import G_Local
+import datetime as dt
+import duckdb as db
+import statsmodels.api as sm
+from scipy.stats import chi2_contingency
+from scipy.stats import ttest_rel
+import statsmodels.formula.api as smf
+
+plt.rcParams['font.family'] = "Liberation Serif"
+```
+
+```{python}
+import requests
+
+def download_bib_file(url, output_path):
+    if not os.path.exists(output_path):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(output_path, 'w', encoding='utf-8') as file:
+                file.write(response.text)
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to render document: {e}")
+
+download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
+download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
+```
+
+## 0. Docker command
+Please render this document with the following command: quarto render Group_Work.qmd --to pdf --pdf-engine=pdflatex
+
+## 1. Who collected the InsideAirbnb data?
+Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists [@insideairbnb].
+
+## 2. Why did they collect the InsideAirbnb data?
+IA data seeks to challenge official data from Airbnb, which may be misrepresentative of its operations and impact [@slee_2016]. It offers an alternative perspective to Airbnb’s (limited) publicly available data by purposefully representing it through datasets and visualisations, with the not-for-profit goal of helping cities and communities to make informed decisions concerning Airbnb’s operations [@insideairbnb]. In doing so, IA increases data accessibility on Airbnb’s impacts on residential neighbourhoods worldwide, especially with regard to quantifying the ramifications of short-term lets [@wang_2024] on local communities.  
+
+## 3. How did they collect it?
+The IA data is collected through a process known as web-scraping, in which automated software repeatedly visits the Airbnb website and extracts publicly-available data from each listing, such as description, location, and room or property type [@prentice_2023]. The Python code used to scrape the data is available to the public on Github but has not been updated since 2019 [@alsudais_2021], meaning it is not possible to know exactly how the data are processed. However, IA does not merely scrape website data, but also processes these and augments them with assumptions about their nature [@insideairbnb]. These approaches will be discussed further below.
+
+## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
+As a scrape of Airbnb's website rather than the raw data themselves, the final IA datasets have potential biases and quality issues that should be taken into account by analysts and legislators using them to inform policy. Web-scraping only extracts publicly-available information on Airbnb’s website at the time the script is run: this means it cannot capture deleted listings or exact listing locations, as Airbnb anonymises these for privacy reasons [@prentice_2023]. In addition, Airbnb’s website does not differentiate between when listings are booked or blocked by their host [@crommelin_2018], meaning IA has to use review counts to roughly estimate occupancy rates. However, the process of scraping and processing by IA itself also introduces uncertainty. The web scrapes’ reservation query settings affect the data retrieved, meaning listings may be undercounted if they do not match the search’s parameters [@prentice_2023]. Furthermore, @alsudais_2021 found inaccuracies in the way IA had joined reviews and listing IDs.
+
+Moreover, it is important to remember that Airbnb’s raw data is not necessarily accurate in the first place. Some listings may be fake, duplicates, or inactive [@adamiak_2022]. Finally, the IA data cannot capture short-term letting (STL) transactions through other platforms [@prentice_2023]. This raises the question of whether IA data alone can provide a holistic understanding of the STL market.
+
+## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
+The use of InsideAirbnb data raises a few ethical concerns due to the collection of the data through web scraping. Using an ethics framework developed by @krotov_2020 in their paper, the ethical concerns of web scraping Airbnb’s data can be categorised into infringement of individual and organisational privacy, rights of research subjects, data quality and discrimination. These categories are very applicable and in the case of IA, researchers should always be aware of identifying possible harm to individuals, organisations and enact precautionary measures to avoid these harms. 
+
+Infringement of individual privacy and rights to research subjects are perhaps some of the most significant ethical concerns while using the IA dataset. Since web scraping involves extracting all possible data from a website before parsing and classifying them, these data may unintentionally infringe on users’ privacy as all web activities of individuals can be extracted, revealed and may be a means of personal identification in the future [@zook_2017]. The IA dataset covers users reviews with their first name, duration of stay, neighbourhood, and comments recorded. Although full names and exact locations are anonymised by Airbnb, details of user reviews may reveal more about their daily lives and can risk being re-identified with generative models [@rocher_2019]. Even if personal privacy is not harmed, users may not have given permission to researchers for the use of their data, infringing on rights of research subjects. This requires additional steps to protect anonymity of subjects by deleting identifiable information or detaching unique keys from the dataset [@kohlmayer_2019]. 
+
+Just like how individual privacy is an ethical concern, organisations have a right to their privacy as well. Airbnb’s privacy may be compromised through web scraping since their listing data embedded were not meant to be revealed entirely to the public. This may lead to confidential operations of the company being leaked including market share and intended audiences which can be maliciously used by competitors. For example, Uber was accused of using web scraping to conduct surveillance on its drivers and its competitors [@rosenblatt_2017].
+
+## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
+__Room types__
+
+An analysis of 2021-2024 Airbnb data shows a growing dominance of entire-home listings. From data on room types, we identified a rise in the proportion of entire-home listings (as opposed to single-room listings) from around 55% of total listings in 2021 to 64% in 2024. This reflects growing demand for entire-home rentals, challenging Airbnb’s claims to a “sharing economy” [@minton_2023]. An exploration of where this change is occurring (Figure 1) reveals that entire-home listings remain concentrated in central London but have steadily expanded outward over time.
+
+```{python}
+# data sources
+url_listings_2024 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/listings.csv.gz'
+url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2021_listings.csv.gz'
+url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
+url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
+base_url = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/'
+url_reviews = 'https://orca.casa.ucl.ac.uk/~jreades/data/20240614-London-reviews.csv.gz'
+url_edi_reviews = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/edinburgh/reviews.csv'
+url_edi_listings = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/edinburgh/listings.csv'
+
+files = {
+    'MSOA_2011_London_gen_MHW': ['.shp', '.shx', '.dbf', '.prj'],
+    'London_Borough_Excluding_MHW': ['.shp', '.shx', '.dbf', '.prj']
+}
+```
+
+```{python}
+def check_cache(f):
+    @wraps(f)
+    def wrapper(src, dst, min_size=100):
+        url = urlparse(src)
+        fn = os.path.split(url.path)[-1]
+        dsn = os.path.join(dst, fn)
+        if os.path.isfile(dsn) and os.path.getsize(dsn) > min_size:
+            #print(f"+ {dsn} found locally!")
+            return dsn
+        else:
+            #print(f"+ {dsn} not found, downloading!")
+            return f(src, dsn)
+    return wrapper
+
+@check_cache
+def cache_data(src: str, dst: str) -> str:
+    path = os.path.split(dst)[0]
+    if path != '':
+        os.makedirs(path, exist_ok=True)
+    with open(dst, "wb") as file:
+        response = get(src)
+        file.write(response.content)
+    #print(' + Done downloading...')
+    return dst
+```
+
+```{python}
+def download_listings(file_path, url):
+    import requests
+    response = requests.get(url)
+    response.raise_for_status()
+    with open(file_path, 'wb') as f:
+        f.write(response.content)
+
+listings_2021_path = cache_data(url_listings_2021, "llvc_data")
+listings_2022_path = cache_data(url_listings_2022, "llvc_data")
+listings_2023_path = cache_data(url_listings_2023, "llvc_data")
+listings_2024_path = cache_data(url_listings_2024, "llvc_data")
+reviews_path = cache_data(url_reviews, 'llvc_data')
+edi_reviews_path = cache_data(url_edi_reviews, 'llvc_data')
+edi_listings_path = cache_data(url_edi_listings, 'llvc_data')
+
+df_listings_2024 = pd.read_csv(listings_2024_path, compression='gzip', low_memory=False)
+df_listings_2023 = pd.read_csv(listings_2023_path, compression='gzip', low_memory=False)
+df_listings_2022 = pd.read_csv(listings_2022_path, compression='gzip', low_memory=False)
+df_listings_2021 = pd.read_csv(listings_2021_path, compression='gzip', low_memory=False)
+reviews = pd.read_csv(reviews_path, compression = 'gzip')
+edi_reviews = pd.read_csv(edi_reviews_path)
+edi_listings = pd.read_csv(edi_listings_path)
+
+os.makedirs('shapefiles', exist_ok=True)
+for name, extensions in files.items():
+    for ext in extensions:
+        file_path = f'shapefiles/{name}{ext}'
+        url = f"{base_url}{name}{ext}"
+        download_listings(file_path, url)
+
+df_msoa_map = gpd.read_file('shapefiles/MSOA_2011_London_gen_MHW.shp')
+boro = gpd.read_file('shapefiles/London_Borough_Excluding_MHW.shp')
+```
+
+```{python}
+warnings.filterwarnings("ignore", message="ERROR 1: PROJ: proj_create_from_database: Cannot find proj.db")
+# Identifying and selecting relevant columns from listings datasets
+columns_q6a = ['id', 'listing_url', 'latitude', 'longitude', 'property_type', 'room_type']
+listings2021_q6a = df_listings_2021[columns_q6a]
+listings2022_q6a = df_listings_2022[columns_q6a]
+listings2023_q6a = df_listings_2023[columns_q6a]
+listings2024_q6a = df_listings_2024[columns_q6a]
+
+# Plotting entire-home listings by MSOA
+
+# Creating function to calculate proportion of entire-home listings from a listings dataset
+def entire_home_map_msoa(listings):
+    
+    # create geodataframe
+    geolistings = gpd.GeoDataFrame(listings,geometry = gpd.points_from_xy(listings.longitude,listings.latitude,crs ='epsg:4326'))
+    
+    # read MSOAs shapefile
+    msoas = df_msoa_map
+    
+    # ensure they are the same CRS
+    msoas = msoas.to_crs(geolistings.crs)
+    
+    # Spatial join to find which points fall within each MSOA
+    joined_gdf_msoa = gpd.sjoin(geolistings, msoas, how='inner', predicate='within')
+
+    # counting total listings by MSOA
+    total_listings_msoa = joined_gdf_msoa.groupby('MSOA11CD').size().reset_index(name='total_listings')
+
+    # filtering for room type = "entire home/apt" and getting counts
+    entire_home_gdf = joined_gdf_msoa[joined_gdf_msoa['room_type'] == "Entire home/apt"]
+    entire_home_counts = entire_home_gdf.groupby('MSOA11CD').size().reset_index(name='entire_home_count')
+
+    # adding total listings and "entire home/apt" count to main MSOAs gdf
+    msoas = msoas.merge(total_listings_msoa, how='left', left_on='MSOA11CD', right_on='MSOA11CD')
+    msoas = msoas.merge(entire_home_counts, how='left', left_on='MSOA11CD', right_on='MSOA11CD')
+
+    # calculating proportion of "entire home/apt" listings out of total listings
+    msoas['entire_home_density'] = msoas['entire_home_count'] / msoas['total_listings']
+    msoas['entire_home_density'] = msoas['entire_home_density'].fillna(0)
+    return msoas
+
+# Years to plot
+listings_list = [listings2021_q6a,listings2022_q6a,listings2023_q6a,listings2024_q6a]
+
+# Create a plot with 4 subplots (one for each year)
+fig, axes = plt.subplots(1, 4, figsize=(24, 6))
+
+# Loop through the years and plot each map
+for i, year in enumerate(listings_list):
+    # Determine the position of the subplot
+    ax = axes[i]  
+    # Running function on dataset from each year
+    entirehomedensity = entire_home_map_msoa(year)
+    # Plotting output
+    entirehomedensity.plot(column='entire_home_density', 
+                           cmap = plt.cm.coolwarm, 
+                           ax = ax,
+                          legend=False,
+                           legend_kwds={'label': "Proportion of Entire Home/Apt Listings",
+                                        'orientation': "horizontal"})
+    
+    # Set the title for each subplot
+    ax.set_title(f'{i+2021}')
+    ax.set_axis_off()  # Optionally turn off the axis for a cleaner look
+
+#ChatGPT helped set a single legend, rather than one for each map
+colourbar = fig.colorbar(entirehomedensity.plot(column='entire_home_density', cmap=plt.cm.coolwarm, ax=axes[0]).collections[0], 
+             ax=axes, 
+             orientation='horizontal', 
+             fraction=0.04, 
+             pad=0.1)
+colourbar.ax.tick_params(labelsize=18)
+colourbar.set_label("Proportion of Entire Home/Apt Listings", fontsize=16)
+
+plt.suptitle("Figure 1: Proportion of All Listings that are Entire Home/Apt by MSOA", fontsize= 24)
+#Tight layout had an error but this works fine
+plt.subplots_adjust(wspace=0.2, hspace=0.3, top=0.85, bottom=0.2)
+plt.show()
+```
+
+__Multiple-listing hosts__
+
+Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts [@insideairbnb_2024], who often escape housing/land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018], thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.
+
+```{python}
+#add a new column called year to each dataframe
+df_listings_2024['year'] = 2024
+df_listings_2021['year'] = 2021
+df_listings_2022['year'] = 2022
+df_listings_2023['year'] = 2023
+
+df_listings_combined = pd.concat([df_listings_2024, df_listings_2021, df_listings_2022, df_listings_2023], axis=0, ignore_index=True)   
+
+#select the column I want to use
+columns_to_use = ['id', 'listing_url', 'name', 'host_id', 'host_name', 'host_listings_count', 'host_total_listings_count', 'latitude', 'longitude', 'property_type', 'room_type', 'price', 'number_of_reviews','review_scores_rating', 'year']
+df_listings_combined = df_listings_combined[columns_to_use]
+```
+
+```{python}
+df_host_listings_count = df_listings_combined.groupby(['host_id', 'year'])['id'].nunique().reset_index()
+df_host_listings_count.columns = ['host_id', 'year', 'host_listings_count']
+
+#count the category of host_listings_count
+bins = [0, 2, float('inf')] #catogrize host_listings_count into <=1 and >2
+labels = ['Single Property hosts', 'Multiple Properties hosts']
+df_host_listings_count['category'] = pd.cut(df_host_listings_count['host_listings_count'], bins=bins, labels=labels, right=False)
+```
+
+```{python}
+#merge the df_listings_combined and df_host_listings_count
+df_new_listings_combined = df_listings_combined.merge(df_host_listings_count, on=['host_id', 'year'], how='left') 
+df_new_listings_combined = df_new_listings_combined.rename(columns={'host_listings_count_y': 'new_host_listings_count'})
+df_new_listings_combined #make the latitude and longitude to geo dara frame point and create the new column called geometry_point
+
+points = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])]
+gdf_new_listings_combined = gpd.GeoDataFrame(df_new_listings_combined, geometry = points)
+gdf_new_listings_combined.crs = "EPSG:4326"
+gdf_new_listings_combined = gdf_new_listings_combined.rename(columns={'geometry': 'geometry_point'})
+```
+
+```{python}
+multiple_properties_ids = df_new_listings_combined[df_new_listings_combined['category'] == 'Multiple Properties hosts'].groupby('year')['id'].nunique()
+single_property_ids = df_new_listings_combined[df_new_listings_combined['category'] == 'Single Property hosts'].groupby('year')['id'].nunique()
+percentage_multiple_properties_ids = multiple_properties_ids / (multiple_properties_ids + single_property_ids)
+
+
+fig = plt.figure(figsize=(20, 10))
+gs = GridSpec(nrows=1, ncols=2, width_ratios=[1, 1.5])  # calculate the width ratio
+
+# add the big title
+plt.suptitle("Figure 2: Numerical (2021-2024) and Spatial (2024) Trends in Single- and Multiple-unit Host Listings", fontsize= 24)
+
+# bar chart
+ax1 = fig.add_subplot(gs[0, 0])
+bar_width = 0.35
+index = np.arange(len(multiple_properties_ids))
+
+ax1.bar(multiple_properties_ids.index, multiple_properties_ids, width=bar_width, color='#ff5c00', label='Multi-unit host listings')
+ax1.bar(single_property_ids.index + bar_width, single_property_ids, width=bar_width, color='#0061ff', label='Single-unit host listings')
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Count of listings', color='black')
+ax1.tick_params(axis='y', labelcolor='black')
+ax1.set_xticks(multiple_properties_ids.index)
+ax1.set_title("Single- and Multi-unit Hosts' Listings from 2021 to 2024")
+ax1.grid(color='gray', linestyle='--', linewidth=0.5)
+ax1.legend(loc='upper left')  # legend
+
+# mapping
+geometry_map = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])] 
+gdf_map = gpd.GeoDataFrame(df_new_listings_combined, geometry=geometry_map, crs="EPSG:4326")
+gdf_map = gdf_map.to_crs(epsg=3857)
+
+color_map = {
+    'Multiple Properties hosts': '#FF5C00',
+    'Single Property hosts': '#0061FF'
+}
+gdf_map['color'] = gdf_map['category'].map(color_map)
+
+min_x, min_y, max_x, max_y = gdf_map.total_bounds
+
+ax2 = fig.add_subplot(gs[0, 1])
+gdf_map.plot(ax=ax2, color=gdf_map['color'], markersize=0.05, alpha=0.2)
+ax2.set_xlim([min_x, max_x])
+ax2.set_ylim([min_y, max_y])
+ctx.add_basemap(ax2, source=ctx.providers.CartoDB.Positron)
+
+legend_labels = {
+    'Multi-unit host listings': '#FF5C00', 
+    'Single-unit host listings': '#0061FF'
+}
+patches = [Patch(color=color, label=label) for label, color in legend_labels.items()]
+ax2.legend(handles=patches, loc='upper left', bbox_to_anchor=(0.01, 0.1), fontsize=10)  
+ax2.set_title('The listings of multi-unit and single-unit hosts distribution in 2024')
+plt.tight_layout()
+plt.show()
+```
+
+These trends in room and host types point towards the increasing commercialisation of Airbnb lets. More than bona fide home sharing, Airbnb appears to be a platform for commercial profit at the expense of local communities [@quattrone_2016].
+
+
+## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
+
+As indicated above, although Airbnb was initially conceived of and portrayed as a small-scale, peer-to-peer exchange platform, its rapid expansion and shift towards entire homes and multi-unit hosts has led to concerns about rent increases, lost hotel and income tax revenues, and even gentrification and displacement (Huebscher and Borst, 2023). In response to these challenges, hosts in Greater London are limited to renting out ‘entire home’ listings for a maximum of 90 nights annually: a regulation introduced in January 2017 (Airbnb, 2017). In this section, we seek to assess the efficacy of this 90-day regulation in curbing the expansion of commercialised Airbnb listings, and consider whether other approaches may be more effective.
+
+### Temporal Regulation
+
+Beginning with the 90-night limit, we first ask whether the policy reduced the proportion of entire home listings over 90 nights relative to other room types. The null hypothesis posits no difference in the proportion of entire home listings exceeding 90 nights compared to single room listings before and after the policy was imposed, while the alternate hypothesis suggests a change occurred.
+
+A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts Wang et al.’s (2024) occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute* changes or proportions, we can compare figures over time to consider relative occupancy trends.
+
+```{python}
+#Select only desired listings columns
+listings = df_listings_2024[["id", "host_id", "room_type", "minimum_nights"]].copy()
+
+#Prepare reviews for analysis
+reviews["date"] = pd.to_datetime(reviews["date"], format="%Y-%m-%d")
+reviews['year'] = reviews.date.dt.year
+
+#Filter reviews to desired time periods
+
+#2015 to 2018 data for policy impact assessments
+reviews_2015_2018 = reviews[(reviews.year > 2014) & (reviews.year < 2019)]
+
+#Last 12 months data for quick statistic on the situation now
+max_date = reviews.date.max()
+cutoff_2023 = max_date.replace(year=max_date.year - 1)
+reviews_recent = reviews[reviews["date"] > cutoff_2023]
+```
+
+```{python}
+#Calculate estimated occupancy using Wang et al.'s (2024) methodology
+#I tested a variety of metrics - this was the least conservative, but we have decided to use this one due to the logic behind it
+
+#Findings have only been included in this write-up if they were similar for all metrics tested
+#This is useful as a relative metric that can tell us direction of change, but due to the assumptions involved we shouldn't see it as an objective measure of absolute change
+
+def occupancy_estimates(reviews,listings,year_columns):
+    
+    #Step 1: count reviews per listing per year
+    reviews_annual = reviews.groupby(['listing_id', 'year']).size().unstack(fill_value=0)
+    year_columns = {year: f'reviews_{year}' for year in year_columns}
+    reviews_annual.rename(columns=year_columns, inplace=True)
+    reviews_annual = reviews_annual.reset_index()
+    reviews_annual.columns.name = None
+    
+    #Step 2: Divide each year by 0.5 (assume that 1 in 2 stays results in a review)
+    for year in year_columns:
+        reviews_annual[f'{year}_adjusted'] = reviews_annual[f'reviews_{year}'] / 0.5
+        
+    #Step 3: Join to the listings dataset
+    #All listings are present for most recent 12 months, only 95% are present for 2015-2018 data - a limitation
+    reviews_annual = reviews_annual.merge(listings, how='left', left_on='listing_id', right_on='id').drop(columns=['id'])
+    reviews_annual.dropna(subset=['room_type'], inplace=True)
+
+    #Step 4: Calculating estimated nights column: greater of either 3 (average stay according to Airbnb) or minimum nights
+    reviews_annual['estimated_stay'] = np.maximum(3, reviews_annual.minimum_nights)
+
+    #Step 5 and 6: 
+    #5: Estimate occupied nights for each year by multiplying the adjusted review rate by the estimated stay duration (n.b. this assumes that the minimum nights has not changed over time)
+    #6: Cap at 21 days per month (not changing 2016 leap year as 1/365 = 0.002...)
+    cap_nights = 12 * 21  # max 21 days per month
+    for year in year_columns:
+        reviews_annual[f'estimated_nights{year}'] = reviews_annual[f'{year}_adjusted'] * reviews_annual.estimated_stay
+        reviews_annual[f'estimated_nights{year}_capped'] = np.minimum(cap_nights, reviews_annual[f'estimated_nights{year}'])
+
+    return reviews_annual
+```
+
+```{python}
+#Calculate estimates for 2015-2018 data
+years = range(2015, 2019)
+reviews_annual = occupancy_estimates(reviews_2015_2018,listings,years)
+```
+
+```{python}
+# Prepare for two proportion z-test for change in proportions of room type between 2016 and 2017
+
+# Reformat data
+# Getting number of over 90s and totals for each category, as this is what the statistical test requires
+
+#Calculating final table: whether a listing had True or False for over 90 days, and aggregated by room type
+#Only looking at room type for now connected to research question, but I have the host column in there to check for superhosts if necessary
+
+db.register('reviews_annual', reviews_annual)
+
+query = '''
+       WITH listings_90 AS (
+            SELECT 
+            listing_id,
+            CASE WHEN room_type = 'Entire home/apt' THEN 'Entire Home' ELSE 'Other' END AS room_type,
+            CASE WHEN estimated_nights2015_capped >= 90 THEN 1 ELSE 0 END AS over90_2015,
+            CASE WHEN estimated_nights2015_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2015,
+            CASE WHEN estimated_nights2016_capped >= 90 THEN 1 ELSE 0 END AS over90_2016,
+            CASE WHEN estimated_nights2016_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2016,
+            CASE WHEN estimated_nights2017_capped >= 90 THEN 1 ELSE 0 END AS over90_2017,
+            CASE WHEN estimated_nights2017_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2017,
+            CASE WHEN estimated_nights2018_capped >= 90 THEN 1 ELSE 0 END AS over90_2018,
+            CASE WHEN estimated_nights2018_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2018
+        FROM reviews_annual)
+    SELECT
+        room_type,
+        SUM(over90_2015) AS over90_2015,
+        SUM(over90_2015) + SUM(under90_2015) AS total_2015,
+        SUM(over90_2016) AS over90_2016,
+        SUM(over90_2016) + SUM(under90_2016) AS total_2016,
+        SUM(over90_2017) AS over90_2017,
+        SUM(over90_2017)+SUM(under90_2017) AS total_2017,
+        SUM(over90_2018) AS over90_2018,
+        SUM(over90_2018)+SUM(under90_2018) AS total_2018
+    FROM listings_90
+    GROUP BY 1
+'''
+
+proportions_room = db.sql(query).to_df()
+#proportions_room.head()
+```
+
+```{python}
+# Two proportion z-test for proportions of property types above and below 90 days in 2016 and 2017
+#Room type is independent and sample size is over 10 for each category
+#https://www.statsmodels.org/dev/generated/statsmodels.stats.proportion.proportions_ztest.html
+
+#H0: there is no difference in the proportion of properties estimated over 90 days for each room type.
+#H1: there is a difference in the proportion of properties estimated over 90 days for each room type.
+
+#Entire Home z-test
+count_eh = [proportions_room[proportions_room.room_type=='Entire Home'].over90_2016,
+               proportions_room[proportions_room.room_type=='Entire Home'].over90_2017]
+nobs_eh = [proportions_room[proportions_room.room_type=='Entire Home'].total_2016,
+              proportions_room[proportions_room.room_type=='Entire Home'].total_2017]
+
+z_eh, p_eh = sm.stats.proportions_ztest(count_eh, nobs_eh)
+
+#Other z-test
+count_other = [proportions_room[proportions_room.room_type=='Other'].over90_2016,
+               proportions_room[proportions_room.room_type=='Other'].over90_2017]
+nobs_other = [proportions_room[proportions_room.room_type=='Other'].total_2016,
+              proportions_room[proportions_room.room_type=='Other'].total_2017]
+
+z_other, p_other = sm.stats.proportions_ztest(count_other, nobs_other)
+
+#print(f"Z-statistic for 'Other' room type: {z_other}, P-value: {p_other}")
+#print(f"Z-statistic for 'Entire Home' room type: {z_eh}, P-value: {p_eh}")
+
+#Reject H0 for both
+# Entire Home decrease is statistically significant at the 99% level
+# Other increase is statistically significant at the 95% level
+```
+
+```{python}
+#Prepare for the two-proportion z-test in proportion of properties estimated over 90 days for each host type
+
+#Getting number of over 90s and totals for each category, as this is what the statistical test requires
+
+query2 = '''
+       WITH host_type AS (
+       SELECT 
+           host_id,
+           CASE WHEN COUNT(*)>1 THEN 'Multi-Listing Host' ELSE 'Single Property Host' END AS host_type           
+       FROM reviews_annual
+       GROUP BY 1),
+       
+       listings_90 AS (
+            SELECT 
+            r.listing_id,
+            h.host_type,
+            CASE WHEN r.estimated_nights2015_capped >= 90 THEN 1 ELSE 0 END AS over90_2015,
+            CASE WHEN r.estimated_nights2015_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2015,
+            CASE WHEN r.estimated_nights2016_capped >= 90 THEN 1 ELSE 0 END AS over90_2016,
+            CASE WHEN r.estimated_nights2016_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2016,
+            CASE WHEN r.estimated_nights2017_capped >= 90 THEN 1 ELSE 0 END AS over90_2017,
+            CASE WHEN r.estimated_nights2017_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2017,
+            CASE WHEN r.estimated_nights2018_capped >= 90 THEN 1 ELSE 0 END AS over90_2018,
+            CASE WHEN r.estimated_nights2018_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2018
+        FROM reviews_annual r
+            LEFT JOIN host_type h
+                ON r.host_id=h.host_id)
+        
+    SELECT
+        host_type,
+        SUM(over90_2015) AS over90_2015,
+        SUM(over90_2015) + SUM(under90_2015) AS total_2015,
+        SUM(over90_2016) AS over90_2016,
+        SUM(over90_2016) + SUM(under90_2016) AS total_2016,
+        SUM(over90_2017) AS over90_2017,
+        SUM(over90_2017)+SUM(under90_2017) AS total_2017,
+        SUM(over90_2018) AS over90_2018,
+        SUM(over90_2018)+SUM(under90_2018) AS total_2018
+    FROM listings_90
+    GROUP BY 1
+'''
+
+proportions_host = db.sql(query2).to_df()
+#proportions_host.head()
+```
+
+```{python}
+#Two proportion z-test in proportion of properties estimated over 90 days for each host type.
+
+#H0: there is no difference in the proportion of properties estimated over 90 days for each host type.
+#H1: there is a difference in the proportion of properties estimated over 90 days for each host type.
+
+#Superhost z-test
+count_m = [proportions_host[proportions_host.host_type=='Multi-Listing Host'].over90_2016,
+               proportions_host[proportions_host.host_type=='Multi-Listing Host'].over90_2017]
+nobs_m = [proportions_host[proportions_host.host_type=='Multi-Listing Host'].total_2016,
+              proportions_host[proportions_host.host_type=='Multi-Listing Host'].total_2017]
+
+z_m, p_m = sm.stats.proportions_ztest(count_m, nobs_m)
+
+#Single property host z-test
+count_s = [proportions_host[proportions_host.host_type=='Single Property Host'].over90_2016,
+               proportions_host[proportions_host.host_type=='Single Property Host'].over90_2017]
+nobs_s = [proportions_host[proportions_host.host_type=='Single Property Host'].total_2016,
+              proportions_host[proportions_host.host_type=='Single Property Host'].total_2017]
+
+z_s, p_s = sm.stats.proportions_ztest(count_s, nobs_s)
+
+#print(f"Z-statistic for Multi-Listing Hosts: {z_m}, P-value: {p_m}")
+#print(f"Z-statistic for Single Property Hosts: {z_s}, P-value: {p_s}")
+
+# Multi-listing host decrease is statistically significant at the 99% level - reject H0
+# Single property host had no statistically significant change - accept H0
+```
+
+```{python}
+#Difference in differences test
+#Linking to this as I drew on it a lot: #https://www.kaggle.com/code/harrywang/difference-in-differences-in-python
+
+#Extracting relevant columns:
+did_df = reviews_annual[["listing_id", "room_type", "estimated_nights2015_capped", "estimated_nights2016_capped", "estimated_nights2017_capped", "estimated_nights2018_capped"]].copy()
+
+#Create a column for over 90 or not
+for year in years:
+    did_df[f'over_90_{year}'] = (did_df[f'estimated_nights{year}_capped'] > 90).astype(int)
+
+#Create treatment (Entire Home) versus control (Other) group
+did_df['entire_home'] = (did_df.room_type == 'Entire home/apt').astype(int)
+
+#Pivoting data - ChatGPT helped
+did_df = did_df.melt(
+    id_vars=['listing_id', 'room_type', 'entire_home'], 
+    value_vars=[f'over_90_{year}' for year in years], 
+    var_name='year', 
+    value_name='over_90'
+)
+
+#Extract year (final 4 characters)
+did_df['year'] = did_df.year.str[-4:].astype(int)
+
+#Policy and interaction columns
+did_df['post_policy'] = (did_df.year >= 2017).astype(int)
+did_df['interaction'] = did_df.entire_home * did_df.post_policy
+
+#Run model
+did_rooms = smf.ols('over_90 ~ post_policy + entire_home + interaction', data=did_df).fit()
+#did_rooms.summary()
+
+#Low goodness of fit (R^2 is 0.024)
+#But statistically significant decrease (-0.0492, or 4.92%) in Entire Homes available over 90 days
+```
+
+```{python}
+#Get occupancy estimates for the past 12 months
+reviews_recent.loc[:, 'year'] = 2024 #this is false but setting it so the function will work
+
+reviews_24 = occupancy_estimates(reviews_recent, listings, [2024])
+```
+
+```{python}
+#Work out percentage estimated over 90 days
+
+db.register('reviews_24', reviews_24)
+
+query4 = '''
+       WITH listings_90 AS (
+            SELECT 
+            listing_id,
+            CASE WHEN room_type = 'Entire home/apt' THEN 'Entire Home' ELSE 'Other' END AS room_type,
+            CASE WHEN estimated_nights2024_capped >= 90 THEN 1 ELSE 0 END AS over90_2023_24,
+            CASE WHEN estimated_nights2024_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2023_24
+        FROM reviews_24),
+
+        totals AS (
+            SELECT
+            room_type,
+            SUM(over90_2023_24) AS over90_2023_24,
+            SUM(over90_2023_24) + SUM(under90_2023_24) AS total_2023_24
+            FROM listings_90
+            GROUP BY 1)
+
+        SELECT 
+            room_type,
+            ROUND(100 * SUM(over90_2023_24) / SUM(total_2023_24), 2) AS pct_over90
+        FROM totals
+        GROUP BY 1
+'''
+
+recent_proportions = db.sql(query4).to_df()
+#recent_proportions.head()
+
+#Percent estimated over 90 days is 24.34% for Entire Home, as opposed to 35.71% for Other
+#Obviously the proportion itself doesn't matter as much as changes in the proportion (because we are very uncertain about the metric itself)
+#But this figure for Entire Homes is lower than in 2017, indicating the policy is still having an impact
+```
+
+A difference-in-differences (DiD) test for 2015-2018 assessed this trend more robustly. Using non-entire home room types as a control group **(Figure 3)**, the test found a small but statistically significant impact: the policy was associated with a 4.92% decrease in the likelihood of entire homes being occupied over 90 nights. Moreover, proportions for entire homes over the past 12 months remain below pre-policy figures, indicating the cap has been effective in suppressing numbers. From here, we can tentatively reject H0 and say that, although the effect size was small, the 90-night cap did reduce the proportion of entire homes rented out over this limit.
+
+```{python}
+#Plotting change over time
+
+#Quickly calculate proportions of room types over time
+db.register('proportions_room', proportions_room)
+query3 = '''
+        SELECT room_type,
+               ROUND(100 * over90_2015/total_2015, 2) AS pct_90_2015,
+               ROUND(100 * over90_2016/total_2016, 2) AS pct_90_2016,
+               ROUND(100 * over90_2017/total_2017, 2) AS pct_90_2017,
+               ROUND(100 * over90_2018/total_2018, 2) AS pct_90_2018
+        FROM proportions_room
+        '''
+room_proportions = db.sql(query3).to_df()
+
+#Pivot this - ChatGPT helped with the melt method
+rooms_pivoted = room_proportions.melt(id_vars='room_type', 
+                                  value_vars=['pct_90_2015', 'pct_90_2016', 'pct_90_2017', 'pct_90_2018'], 
+                                  var_name='Year', 
+                                  value_name='Proportion Over 90 Days')
+
+#Format the year column
+rooms_pivoted['Year'] = rooms_pivoted.Year.str[-4:].astype(int)
+
+#Set up figure
+
+#Figure
+colours = {'Entire Home': '#ff5c00', 'Other': '#0061ff'}
+plt.figure(figsize=(10, 6))
+plt.axvline(x=2016, color='grey', alpha=0.6, linestyle='--', label='Policy Imposition')
+sns.lineplot(data=rooms_pivoted, x='Year', y='Proportion Over 90 Days', hue='room_type', marker='o', palette=colours)
+
+#Labels
+plt.title('Figure 3: Annual Proportion of Listings Over 90 Days by Room Type', size=14)
+plt.xlabel('Year')
+plt.ylabel('Proportion of Listings Occupied for Over 90 Days (%)')
+plt.legend(title='Room Type')
+
+#Sort out x-ticks: add Dec to make it clear it's for cumulative year (rather than Jan)
+xticks = years
+xticklabels = [f'End of {year}' for year in xticks]
+plt.xticks(xticks, xticklabels)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#Paired sample t-test for listings per host between 2016 and 2017
+
+#H0: there is no difference in the number of listings for the same hosts in 2017 versus 2016
+#H1: there is a difference in the number of listings for the same hosts in 2017 versus 2016
+
+#Getting listings count per host for all hosts who had at least 1 active listing in 2016 and 2017
+#This is a paired sample t-test so they have to be in both
+query5 = '''
+        WITH counts AS (
+            SELECT
+                DISTINCT(host_id),
+                SUM(CASE WHEN reviews_2016 > 0 THEN 1 ELSE 0 END) AS listings_2016,
+                SUM(CASE WHEN reviews_2017 > 0 THEN 1 ELSE 0 END) AS listings_2017
+            FROM reviews_annual 
+            GROUP BY 1)
+        SELECT *
+        FROM counts
+        WHERE listings_2016 > 0 AND listings_2017>0
+        '''
+host_listing_counts = db.sql(query5).to_df()
+
+t_stat, p_value = ttest_rel(host_listing_counts.listings_2016, host_listing_counts.listings_2017)
+#print(f"t-statistic: {t_stat}, p-value: {p_value}")
+#print(f'Mean listing count in 2016: {host_listing_counts.listings_2016.mean():.2f}')
+#print(f'Mean listing count in 2017: {host_listing_counts.listings_2017.mean():.2f}')
+
+#t-statistic: -7.497682027460346, p-value: 7.895810682663241e-14
+#Mean listing count in 2016: 1.23
+#Mean listing count in 2017: 1.36
+
+#So count of listings per host increased between years
+```
+
+```{python}
+#Prepare Edinburgh data (control group for DiD) for analysis: same data cleaning and filtering steps as above
+
+edi_reviews["date"] = pd.to_datetime(edi_reviews["date"], format="%Y-%m-%d")
+edi_reviews['year'] = edi_reviews.date.dt.year
+edi_reviews_2015_2018 = edi_reviews[(edi_reviews.year > 2014) & (edi_reviews.year < 2019)]
+
+edi_listings = edi_listings[["id", "host_id", "room_type", "minimum_nights"]]
+```
+
+```{python}
+#Calculate estimated occupancies
+#Use same list of years as for London data
+edi_reviews_annual = occupancy_estimates(edi_reviews_2015_2018,edi_listings,years)
+```
+
+```{python}
+#Find distinct listings for both locations
+tables = ['reviews_annual', 'edi_reviews_annual']
+results = []
+
+# Loop through each table and process
+for table_name in tables:
+
+    #Set treatment flag before combining tables
+    london_flag = 1 if table_name == 'reviews_annual' else 0
+
+    query = f'''
+    SELECT
+        DISTINCT(host_id),
+        SUM(CASE WHEN reviews_2015 > 0 THEN 1 ELSE NULL END) AS listings_2015,
+        SUM(CASE WHEN reviews_2016 > 0 THEN 1 ELSE NULL END) AS listings_2016,
+        SUM(CASE WHEN reviews_2017 > 0 THEN 1 ELSE NULL END) AS listings_2017,
+        SUM(CASE WHEN reviews_2018 > 0 THEN 1 ELSE NULL END) AS listings_2018
+    FROM {table_name}
+    GROUP BY 1
+    '''
+    # Execute query and get result as DataFrame
+    output = db.sql(query).to_df()
+
+    # Add the treatment column
+    output['london'] = london_flag
+
+    # Append to results list
+    results.append(output)
+
+# Combine results from both tables
+distinct_hosts = pd.concat(results, ignore_index=True)
+```
+
+```{python}
+#Comparison of counts
+
+db.register('distinct_hosts', distinct_hosts)
+
+query7 = '''
+        SELECT 
+            CASE WHEN london = 1 THEN 'London' ELSE 'Edinburgh' END AS city,
+            ROUND(AVG(listings_2015), 2) AS avg_listings_2015,
+            ROUND(AVG(listings_2016),2) AS avg_listings_2016,
+            ROUND(AVG(listings_2017),2) AS avg_listings_2017,
+            ROUND(AVG(listings_2018),2) AS avg_listings_2018
+        FROM distinct_hosts 
+        GROUP BY 1
+        '''
+check = db.sql(query7).to_df()
+#check.head()
+
+#London has increased relatively greater than Edinburgh every year, but particularly between 2016-2017 and 2017-2018
+```
+
+```{python}
+#Pivot data for DiD
+
+#ChatGPT helped again with the melt method
+combined_did = pd.melt(
+    distinct_hosts,
+    id_vars=['host_id', 'london'], 
+    value_vars=['listings_2015', 'listings_2016', 'listings_2017', 'listings_2018'],
+    var_name='year', 
+    value_name='count_listings')
+```
+
+```{python}
+#Finish setting up df for DiD
+
+#Extract year
+combined_did['year'] = combined_did.year.str[-4:].astype(int)
+
+#Policy and interaction columns
+combined_did['post_policy'] = (combined_did.year >= 2017).astype(int)
+combined_did['interaction'] = combined_did.london * combined_did.post_policy
+```
+
+```{python}
+#Run model
+did_listings = smf.ols('count_listings ~ post_policy + london + interaction', data=combined_did).fit()
+#did_listings.summary()
+
+#Interaction is not statistically significant!
+#But coefficient (0.0690) would have implied it led to an increase - potentially cancelling drop in proportion over 90 days out?
+```
+
+However, a reduction in the proportion of entire home listings over 90 nights does not necessarily mean compliance with this policy. A paired sample t-test found a statistically significant increase in the number of listings per host between 2016 and 2017, suggesting hosts may have created multiple listings for single properties to circumvent the limit. Another DiD test comparing average listings per host between 2015 and 2018 in London and Edinburgh (which did not experience regulatory changes) found the policy was associated with a 6.9% increase in listings per host, though this was not statistically significant (p=0.199). Further consideration of duplicate listings is essential to assess the policy’s implications.
+
+In conclusion, while the 90-night cap reduced the proportion of entire homes occupied for over 90 nights in London, its impact on overall STL activity in the city remains uncertain. Further analysis of substitution effects and access to Airbnb’s actual occupancy data are necessary for a robust assessment. Ultimately, temporal restrictions may prove beneficial in curbing commercialisation of the platform, but policymakers should urge Airbnb to supplement these with checks (and potential fines) for duplicate listings which try to circumvent these requirements.
+
+### Spatial Regulation
+
+Having assessed the efficacy of the 90-day policy along a temporal scale, we now consider the spatial implications of policies that aim to curb the expansion of commercialised Airbnbs in London. The effects of multi-unit hosts are well documented in the literature; @wachsmuth_2018 reported that gentrification and reduced rental opportunities were rampant in neighbourhoods with a strong presence of multi-unit hosts, consequently transforming Airbnb’s peer-to-peer sharing economy platform to a professional hosts-to-peer business operator. To identify spatial clusters of single-unit host and multi-unit host listings, we first aggregated counts of Single-unit Host Listings (SHL) and Multi-unit Host Listings (MHL) of most recent IA data in 2024 into count per square kilometers (listing density) in each Middle Super Output Area (MSOA). Getis-Ord G* statistic was then employed to determine hot and cold spots of SHL and MHL density. Due to the granularity of the MSOA layer, the G* statistic was calculated using k=8 neighbours to ensure that sufficient local patterns are captured. The G* z-scores are also standardised, making the both SHL and MHL densities comparable.
+
+```{python}
+df_new_listings_combined = df_listings_combined.merge(df_host_listings_count, on=['host_id', 'year'], how='left') 
+df_new_listings_combined = df_new_listings_combined.rename(columns={'host_listings_count_y': 'new_host_listings_count'})
+df_new_listings_combined #make the latitude and longitude to geo dara frame point and create the new column called geometry_point
+
+points = [Point(xy) for xy in zip(df_new_listings_combined['longitude'], df_new_listings_combined['latitude'])]
+gdf_new_listings_combined = gpd.GeoDataFrame(df_new_listings_combined, geometry = points)
+gdf_new_listings_combined.crs = "EPSG:4326"
+gdf_new_listings_combined = gdf_new_listings_combined.rename(columns={'geometry': 'geometry_point'})
+gdf_new_listings_combined = gdf_new_listings_combined.set_geometry('geometry_point')
+```
+
+```{python}
+#1.use the df_msoa_map column "geometry" to count the point in the df_new_listings_combined column "geometry_point" (longitude, latitude) 
+#2. and split to single property count and multiple properties count by year 
+#3. create the percentage of multiple properties  = multiple properties count / (multiple properties count + single property count) by year 
+
+#make sure the coordinate system is the same
+df_msoa_map = df_msoa_map.to_crs(epsg=4326)
+gdf_new_listings_combined = gdf_new_listings_combined.to_crs(epsg=4326)
+
+# spatial join to count the point in the df_new_listings_combined column "geometry_point" (longitude, latitude) 
+gdf_joined = gpd.sjoin(df_msoa_map, gdf_new_listings_combined, how="inner", predicate='contains')
+
+count_properties = gdf_joined.groupby(['MSOA11CD', 'year', 'category'], observed=True).size().unstack(fill_value=0)
+
+# check the column name and add the missing column with 0
+expected_columns = ['Single Property hosts', 'Multiple Properties hosts']
+for col in expected_columns:
+    if col not in count_properties.columns:
+        count_properties[col] = 0
+
+# calculate the total properties and percentage of multiple properties
+count_properties['Total Properties'] = count_properties.sum(axis=1)
+count_properties['Percentage of Multiple Properties'] = (count_properties['Multiple Properties hosts'] / count_properties['Total Properties']) * 100
+
+# if the column "Total Properties" is not in the dataframe, add it with 0
+if 'Total Properties' not in count_properties.columns:
+    count_properties['Total Properties'] = 0
+
+# index to normal column
+count_properties.reset_index(inplace=True)
+df_count_properties = count_properties
+```
+
+```{python}
+df_msoa_map_subset = df_msoa_map[['MSOA11CD', 'geometry']]
+df_count_properties_msoa = df_count_properties.merge(df_msoa_map_subset, on='MSOA11CD', how='left')
+
+df = gpd.GeoDataFrame(df_count_properties_msoa, geometry='geometry')
+df = df.to_crs(epsg=27700)
+
+# Compute the area of each geometry in square meters
+df['area'] = df['geometry'].area
+
+# Calculate density (count per square kilometres)
+df['density'] = df['Multiple Properties hosts'] / (df['area'] * 0.001 * 0.001)
+
+year = 2024
+df1 = df[df['year'] == year]
+
+df = gpd.GeoDataFrame(df_count_properties_msoa, geometry='geometry')
+df = df.to_crs(epsg=27700)
+# Compute the area of each geometry in square meters
+df['area'] = df['geometry'].area
+# Calculate density (count per square kilometres)
+df['density'] = df['Single Property hosts'] / (df['area'] * 0.001 * 0.001)
+year = 2024
+df2 = df[df['year'] == year]
+```
+
+```{python}
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
+
+#Rey, S., Arribas-Bel, D. and Wolf, L.J., 2023. Geographic data science with python. Chapman and Hall/CRC.Spatial Autocorrelation code was implemented with the help of a tutorial found in Geographic Data Science with Python by Rey et al.
+
+w = weights.distance.KNN.from_dataframe(df1, k=8)
+# Row-standardization
+w.transform = "R"
+go_i = esda.getisord.G_Local(df1["density"], w)
+# Gi*
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
+
+import numpy as np
+
+def g_map(g, db, ax):
+    """
+    Create a cluster map
+    ...
+
+    Arguments
+    ---------
+    g      : G_Local
+             Object from the computation of the G statistic
+    db     : GeoDataFrame
+             Table aligned with values in `g` and containing
+             the geometries to plot
+    ax     : AxesSubplot
+             `matplotlib` axis to draw the map on
+
+    Returns
+    -------
+    ax     : AxesSubplot
+             Axis with the map drawn
+    """
+    ec="0.8"
+    
+    z_mean = g.Zs.mean()
+    z_std = g.Zs.std()
+    g.Zs_normalized = (g.Zs - z_mean) / z_std
+
+    # Break observations into significant or not
+    sig = g.p_sim < 0.05
+
+    # Plot non-significant clusters
+    ns = db.loc[sig == False, "geometry"]
+    ns.plot(ax=ax, color="lightgrey", edgecolor=ec, linewidth=0.1, alpha=0.1)
+
+    # Plot HH clusters (Hotspots: Z > 1.96)
+    hh = db.loc[(g.Zs_normalized > 1.96) & (sig == True), "geometry"]
+    hh.plot(ax=ax, color="#0061ff", edgecolor=ec, linewidth=0.1)
+
+    # Plot LL clusters (Coldspots: Z < -1.96)
+    ll = db.loc[(g.Zs_normalized < -1.96) & (sig == True), "geometry"]
+    ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.7)
+    
+    # Style and draw
+    ctx.add_basemap(ax,
+        crs=db.crs,
+        source=ctx.providers.CartoDB.VoyagerNoLabels,
+    )
+    
+    # Flag to add a star to the title if it's G_i*
+    st = ""
+    if g.star:
+        st = "*"
+    # Add title
+    ax.set_title(f"Figure 4: Comparison of Standardised G{st} statistic between SHL and MHL Density by MSOA", size=13)
+    # Remove axis for aesthetics
+    ax.set_axis_off()
+
+    return ax
+```
+
+```{python}
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
+
+go_i2 = esda.getisord.G_Local(df2["density"], w)
+# Gi*
+go_i_star2 = esda.getisord.G_Local(df2["density"], w, star=True)
+
+def g_map2(g, db, ax):
+    """
+    Create a cluster map
+    ...
+
+    Arguments
+    ---------
+    g      : G_Local
+             Object from the computation of the G statistic
+    db     : GeoDataFrame
+             Table aligned with values in `g` and containing
+             the geometries to plot
+    ax     : AxesSubplot
+             `matplotlib` axis to draw the map on
+
+    Returns
+    -------
+    ax     : AxesSubplot
+             Axis with the map drawn
+    """
+    ec = "0.8"
+    
+    z_mean = g.Zs.mean()
+    z_std = g.Zs.std()
+    g.Zs_normalized = (g.Zs - z_mean) / z_std
+
+    # Break observations into significant or not
+    sig = g.p_sim < 0.05
+
+    # Plot non-significant clusters
+    ns = db.loc[sig == False, "geometry"]
+    ns.plot(ax=ax, color="lightgrey", edgecolor=ec, linewidth=0.1, alpha=0)
+
+    # Plot HH clusters (Hotspots: Z > 1.96)
+    hh = db.loc[(g.Zs_normalized > 1.96) & (sig == True), "geometry"]
+    hh.plot(ax=ax, color="#0061ff", edgecolor=ec, linewidth=0.1, alpha=0.2)
+
+    # Plot LL clusters (Coldspots: Z < -1.96)
+    ll = db.loc[(g.Zs_normalized < -1.96) & (sig == True), "geometry"]
+    ll.plot(ax=ax, color="blue", edgecolor=ec, linewidth=0.1, alpha=0.2)
+    
+    # Style and draw
+    ctx.add_basemap(ax,
+        crs=db.crs,
+        source=ctx.providers.CartoDB.VoyagerNoLabels,
+    )
+    
+    # Flag to add a star to the title if it's G_i*
+    st = ""
+    if g.star:
+        st = "*"
+    # Add title
+    ax.set_title(f"Figure 4: Comparison of Standardised G{st} statistic between SHL and MHL Listing Density by MSOA", size=13)
+    # Remove axis for aesthetics
+    ax.set_axis_off()
+
+    return ax
+```
+
+```{python}
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
+
+f, ax = plt.subplots(1, 1, figsize=(12, 6))
+
+w = weights.distance.KNN.from_dataframe(df1, k=8)
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
+
+# Plot both maps on the same axis
+go_i_star2 = esda.getisord.G_Local(df2["density"], w, star=True)
+g_map2(go_i_star2, df2, ax)  
+sig2 = go_i_star2.p_sim < 0.05
+z_mean = go_i_star2.Zs.mean()
+z_std = go_i_star2.Zs.std()
+go_i_star2.Zs_normalized = (go_i_star2.Zs - z_mean) / z_std
+hh2 = df2.loc[(go_i_star2.Zs_normalized > 1.96) & (sig2 == True), "geometry"]
+
+go_i_star = esda.getisord.G_Local(df1["density"], w, star=True)
+g_map(go_i_star, df1, ax)  
+
+sig1 = go_i_star.p_sim < 0.05
+z_mean = go_i_star.Zs.mean()
+z_std = go_i_star.Zs.std()
+go_i_star.Zs_normalized = (go_i_star.Zs - z_mean) / z_std
+hh3 = df1.loc[(go_i_star.Zs_normalized > 1.96) & (sig1 == True), "geometry"]
+
+hh2_geom = gpd.GeoSeries(hh2) 
+hh3_geom = gpd.GeoSeries(hh3) 
+
+# Spatial difference: Geometries in hh3 but not in hh2
+unique_hh3 = hh3_geom.difference(hh2_geom.unary_union)
+# Remove empty geometries
+unique_hh3 = unique_hh3[~unique_hh3.is_empty]
+
+# Plot unique hotspots of multiple properties host density 
+ec = "0.8"
+unique_hh3.plot(ax=ax, color="#ff5c00", edgecolor=ec, linewidth=0.1)
+
+boro.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=0.3)
+
+for idx, row in boro.iterrows():
+    # Get the centroid of each polygon
+    centroid = row.geometry.centroid
+    # Plot the text at the centroid location
+    ax.text(centroid.x, centroid.y, row['NAME'], fontsize=5, ha='center')
+
+# Add a scalebar
+scalebar = ScaleBar(1, units="m", length_fraction=0.2, location='upper right')  
+ax.add_artist(scalebar)
+
+red_patch_low = Patch(color="#0061ff", alpha=0.3, label="Unique Hot Spots of Single-Unit Host Listings Density")
+red_patch_high = Patch(color="#0061ff", alpha=0.7, label="Hot Spots of Both Host Listings Density")
+green = Patch(color="#ff5c00", alpha=0.8, label="Unique Hot Spots of Multi-Unit Host Listings Density")
+ax.legend(handles=[red_patch_low, red_patch_high, green], loc='lower right', fontsize=8)
+
+boro_bounds = boro.total_bounds 
+ax.set_xlim(boro_bounds[0], boro_bounds[2])  # minx, maxx
+ax.set_ylim(boro_bounds[1], boro_bounds[3])  # miny, maxy
+
+ctx.add_basemap(ax,
+        crs=df1.crs,
+        source=ctx.providers.CartoDB.VoyagerNoLabels)
+
+# Tight layout to minimise blank spaces
+f.tight_layout()
+
+# Render the plot
+plt.show()
+```
+
+From figure 4, we observe that while hotspots of both SHL and MHL are clustered in Central London, unique hotspots of MHL are found nearer to popular tourist attractions in boroughs such as Westminster and Kensington & Chelsea. Unique hotspots of SHL are found further away in Boroughs of Islington and Hackney. This suggests that there exists a distinction of central London locations where single- and multi-unit hosts operate, with multi-unit hosts being able to operate in the most exclusive areas of central London.
+However, the clusters of both SHL and MHL also suggests that a spatial regulation of Airbnbs through zoning or spatial bans as seen in other cities may not be effective in curbing commercialisation of Airbnb as both clusters are close geographical proximities, with a lack of borough-level dominance of a particular listing type. This makes it difficult to single out MHL which may unintentionally disadvantage single-unit hosts who rely on Airbnb for supplemental income instead of multi-unit hosts who often operate as businesses. 
+Instead, policy interventions could target hosts based on whether they are single- or multi-unit hosts. Multi-unit hosts could be subjected to stricter regulations, such as specific multi-unit licenses and higher tax rates, with the overall objective of assuaging the impacts of over-commercialisation of short-term lets. 
+
+## References
