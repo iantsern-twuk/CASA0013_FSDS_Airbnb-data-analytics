@@ -1,7 +1,7 @@
 ---
 bibliography: bio.bib
 csl: harvard-cite-them-right.csl
-title: CASA0013_FSDS_Airbnb_living la vida code-a
+title: 'CASA0013 Group Work: Living la Vida Code-a'
 execute:
   echo: false
   freeze: true
@@ -41,37 +41,10 @@ jupyter:
       format_version: '1.0'
       jupytext_version: 1.16.4
   kernelspec:
-    display_name: Python (myenv)
+    display_name: Python (base)
     language: python
-    name: myenv
+    name: base
 ---
-
-## Declaration of Authorship {.unnumbered .unlisted}
-
-We, Jessica Ebner-Statt, Cerys Edwards, Jin Wen Kee, Jiayi Low, and Chung-En Tsern, pledge our honour that the work presented in this assessment is our own. Where information has been derived from other sources, we confirm that this has been indicated in the work. Where a Large Language Model such as ChatGPT has been used we confirm that we have made its contribution to the final submission clear.
-
-Date: 17 December 2024
-
-Student Numbers: 24088089, 23197499, 19017015, 21119312, 23212203 (in order)
-
-## Brief Group Reflection
-
-| What Went Well | What Was Challenging |
-| :--------------: | :--------------------: |
-| Pooling/Sharing information              | Identifying a meaningful research direction                    |
-| Delegating tasks based on strengths, interests, and experience              | Identifying an appropriate metric of Airbnb occupancy                    |
-| Self-directed learning for code and analysis methods              | Coding for the outputs we had in mind                    |
-
-
-## Priorities for Feedback
-
-Are there any areas on which you would appreciate more detailed feedback if we're able to offer it?
-* Efficacy and clarity of visualisations
-* Methods used
-
-{{< pagebreak >}}
-
-# Response to Questions
 
 ```{python}
 #| echo: false
@@ -104,7 +77,7 @@ from scipy.stats import ttest_rel
 import statsmodels.formula.api as smf
 
 # Setting default font
-#plt.rcParams['font.family'] = "Liberation Serif"
+plt.rcParams['font.family'] = "Liberation Serif"
 ```
 
 ```{python}
@@ -157,7 +130,9 @@ url_listings_2021 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FS
 url_listings_2022 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2022_listings.csv.gz'
 url_listings_2023 = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/raw/2023_listings.csv.gz'
 base_url = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/main/Documentation/data/shapefiles/'
-reviews = 'https://orca.casa.ucl.ac.uk/~jreades/data/20240614-London-listings.csv.gz'
+url_reviews = 'https://orca.casa.ucl.ac.uk/~jreades/data/20240614-London-reviews.csv.gz'
+url_edi_reviews = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/edinburgh/reviews.csv'
+url_edi_listings = 'https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/data/edinburgh/listings.csv'
 
 files = {
     'MSOA_2011_London_gen_MHW': ['.shp', '.shx', '.dbf', '.prj'],
@@ -188,9 +163,10 @@ def cache_data(src: str, dst: str) -> str:
     with open(dst, "wb") as file:
         response = get(src)
         file.write(response.content)
-    print(' + Done downloading...')
+    #print(' + Done downloading...')
     return dst
 ```
+
 ```{python}
 def download_listings(file_path, url):
     import requests
@@ -199,15 +175,21 @@ def download_listings(file_path, url):
     with open(file_path, 'wb') as f:
         f.write(response.content)
 
-listings_2021_path = cache_data(url_listings_2021, "2021_listings.csv.gz")
-listings_2022_path = cache_data(url_listings_2022, "2022_listings.csv.gz")
-listings_2023_path = cache_data(url_listings_2023, "2023_listings.csv.gz")
-listings_2024_path = cache_data(url_listings_2024, "listings.csv.gz")
+listings_2021_path = cache_data(url_listings_2021, "llvc_data")
+listings_2022_path = cache_data(url_listings_2022, "llvc_data")
+listings_2023_path = cache_data(url_listings_2023, "llvc_data")
+listings_2024_path = cache_data(url_listings_2024, "llvc_data")
+reviews_path = cache_data(url_reviews, 'llvc_data')
+edi_reviews_path = cache_data(url_edi_reviews, 'llvc_data')
+edi_listings_path = cache_data(url_edi_listings, 'llvc_data')
 
 df_listings_2024 = pd.read_csv(listings_2024_path, compression='gzip', low_memory=False)
 df_listings_2023 = pd.read_csv(listings_2023_path, compression='gzip', low_memory=False)
 df_listings_2022 = pd.read_csv(listings_2022_path, compression='gzip', low_memory=False)
 df_listings_2021 = pd.read_csv(listings_2021_path, compression='gzip', low_memory=False)
+reviews = pd.read_csv(reviews_path, compression = 'gzip')
+edi_reviews = pd.read_csv(edi_reviews_path)
+edi_listings = pd.read_csv(edi_listings_path)
 
 os.makedirs('shapefiles', exist_ok=True)
 for name, extensions in files.items():
@@ -218,9 +200,7 @@ for name, extensions in files.items():
 
 df_msoa_map = gpd.read_file('shapefiles/MSOA_2011_London_gen_MHW.shp')
 boro = gpd.read_file('shapefiles/London_Borough_Excluding_MHW.shp')
-
 ```
-
 
 ```{python}
 # Identifying and selecting relevant columns from listings datasets
@@ -295,14 +275,6 @@ plt.show()
 __Multiple-listing hosts__
 
 Equally noteworthy is an analysis of multiple-unit hosts. As IA notes, multiple-unit hosts are likely commercial hosts [@insideairbnb_2024], who often escape housing/land-use policies and taxation applicable to traditional landlords [@wachsmuth_2018], thus warranting greater scrutiny. An analysis of listings reveals that the proportion of multiple-unit host listings increased from 44.6% of total Airbnb listings in 2021 to 52.2% in 2024, reflecting an expanding dominance of the listings market. The bar chart below visualises the steady growth in the presence of multiple-unit hosts’ listings; a spatial visualisation of where these hosts’ properties are located (based on 2024 data) indicates a concentration of multiple-unit host listings in central London, which will be further explored below.
-
-
-```{python}
-df_listings_2024 = pd.read_csv(url_listings_2024, compression='gzip', low_memory=False)
-df_listings_2023 = pd.read_csv(url_listings_2023, compression='gzip', low_memory=False)
-df_listings_2022 = pd.read_csv(url_listings_2022, compression='gzip', low_memory=False)
-df_listings_2021 = pd.read_csv(url_listings_2021, compression='gzip', low_memory=False)
-```
 
 ```{python}
 #add a new column called year to each dataframe
@@ -408,9 +380,493 @@ As indicated above, although Airbnb was initially conceived of and portrayed as 
 
 Beginning with the 90-night limit, we first ask whether the policy reduced the proportion of entire home listings over 90 nights relative to other room types. The null hypothesis posits no difference in the proportion of entire home listings exceeding 90 nights compared to single room listings before and after the policy was imposed, while the alternate hypothesis suggests a change occurred.
 
-A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts Wang et al.’s (2024) occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute*changes or proportions, we can compare figures over time to consider relative occupancy trends.
+A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts Wang et al.’s (2024) occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute* changes or proportions, we can compare figures over time to consider relative occupancy trends.
 
-JESS REMEMBER TO TEST CODE OUTPUTS WITH NEW DAta source
+```{python}
+#Select only desired listings columns
+listings = df_listings_2024[["id", "host_id", "room_type", "minimum_nights"]].copy()
+
+#Prepare reviews for analysis
+reviews["date"] = pd.to_datetime(reviews["date"], format="%Y-%m-%d")
+reviews['year'] = reviews.date.dt.year
+
+#Filter reviews to desired time periods
+
+#2015 to 2018 data for policy impact assessments
+reviews_2015_2018 = reviews[(reviews.year > 2014) & (reviews.year < 2019)]
+
+#Last 12 months data for quick statistic on the situation now
+max_date = reviews.date.max()
+cutoff_2023 = max_date.replace(year=max_date.year - 1)
+reviews_recent = reviews[reviews["date"] > cutoff_2023]
+```
+
+```{python}
+#Calculate estimated occupancy using Wang et al.'s (2024) methodology
+#I tested a variety of metrics - this was the least conservative, but we have decided to use this one due to the logic behind it
+
+#Findings have only been included in this write-up if they were similar for all metrics tested
+#This is useful as a relative metric that can tell us direction of change, but due to the assumptions involved we shouldn't see it as an objective measure of absolute change
+
+def occupancy_estimates(reviews,listings,year_columns):
+    
+    #Step 1: count reviews per listing per year
+    reviews_annual = reviews.groupby(['listing_id', 'year']).size().unstack(fill_value=0)
+    year_columns = {year: f'reviews_{year}' for year in year_columns}
+    reviews_annual.rename(columns=year_columns, inplace=True)
+    reviews_annual = reviews_annual.reset_index()
+    reviews_annual.columns.name = None
+    
+    #Step 2: Divide each year by 0.5 (assume that 1 in 2 stays results in a review)
+    for year in year_columns:
+        reviews_annual[f'{year}_adjusted'] = reviews_annual[f'reviews_{year}'] / 0.5
+        
+    #Step 3: Join to the listings dataset
+    #All listings are present for most recent 12 months, only 95% are present for 2015-2018 data - a limitation
+    reviews_annual = reviews_annual.merge(listings, how='left', left_on='listing_id', right_on='id').drop(columns=['id'])
+    reviews_annual.dropna(subset=['room_type'], inplace=True)
+
+    #Step 4: Calculating estimated nights column: greater of either 3 (average stay according to Airbnb) or minimum nights
+    reviews_annual['estimated_stay'] = np.maximum(3, reviews_annual.minimum_nights)
+
+    #Step 5 and 6: 
+    #5: Estimate occupied nights for each year by multiplying the adjusted review rate by the estimated stay duration (n.b. this assumes that the minimum nights has not changed over time)
+    #6: Cap at 21 days per month (not changing 2016 leap year as 1/365 = 0.002...)
+    cap_nights = 12 * 21  # max 21 days per month
+    for year in year_columns:
+        reviews_annual[f'estimated_nights{year}'] = reviews_annual[f'{year}_adjusted'] * reviews_annual.estimated_stay
+        reviews_annual[f'estimated_nights{year}_capped'] = np.minimum(cap_nights, reviews_annual[f'estimated_nights{year}'])
+
+    return reviews_annual
+```
+
+```{python}
+#Calculate estimates for 2015-2018 data
+years = range(2015, 2019)
+reviews_annual = occupancy_estimates(reviews_2015_2018,listings,years)
+```
+
+```{python}
+# Prepare for two proportion z-test for change in proportions of room type between 2016 and 2017
+
+# Reformat data
+# Getting number of over 90s and totals for each category, as this is what the statistical test requires
+
+#Calculating final table: whether a listing had True or False for over 90 days, and aggregated by room type
+#Only looking at room type for now connected to research question, but I have the host column in there to check for superhosts if necessary
+
+db.register('reviews_annual', reviews_annual)
+
+query = '''
+       WITH listings_90 AS (
+            SELECT 
+            listing_id,
+            CASE WHEN room_type = 'Entire home/apt' THEN 'Entire Home' ELSE 'Other' END AS room_type,
+            CASE WHEN estimated_nights2015_capped >= 90 THEN 1 ELSE 0 END AS over90_2015,
+            CASE WHEN estimated_nights2015_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2015,
+            CASE WHEN estimated_nights2016_capped >= 90 THEN 1 ELSE 0 END AS over90_2016,
+            CASE WHEN estimated_nights2016_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2016,
+            CASE WHEN estimated_nights2017_capped >= 90 THEN 1 ELSE 0 END AS over90_2017,
+            CASE WHEN estimated_nights2017_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2017,
+            CASE WHEN estimated_nights2018_capped >= 90 THEN 1 ELSE 0 END AS over90_2018,
+            CASE WHEN estimated_nights2018_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2018
+        FROM reviews_annual)
+    SELECT
+        room_type,
+        SUM(over90_2015) AS over90_2015,
+        SUM(over90_2015) + SUM(under90_2015) AS total_2015,
+        SUM(over90_2016) AS over90_2016,
+        SUM(over90_2016) + SUM(under90_2016) AS total_2016,
+        SUM(over90_2017) AS over90_2017,
+        SUM(over90_2017)+SUM(under90_2017) AS total_2017,
+        SUM(over90_2018) AS over90_2018,
+        SUM(over90_2018)+SUM(under90_2018) AS total_2018
+    FROM listings_90
+    GROUP BY 1
+'''
+
+proportions_room = db.sql(query).to_df()
+#proportions_room.head()
+```
+
+```{python}
+# Two proportion z-test for proportions of property types above and below 90 days in 2016 and 2017
+#Room type is independent and sample size is over 10 for each category
+#https://www.statsmodels.org/dev/generated/statsmodels.stats.proportion.proportions_ztest.html
+
+#H0: there is no difference in the proportion of properties estimated over 90 days for each room type.
+#H1: there is a difference in the proportion of properties estimated over 90 days for each room type.
+
+#Entire Home z-test
+count_eh = [proportions_room[proportions_room.room_type=='Entire Home'].over90_2016,
+               proportions_room[proportions_room.room_type=='Entire Home'].over90_2017]
+nobs_eh = [proportions_room[proportions_room.room_type=='Entire Home'].total_2016,
+              proportions_room[proportions_room.room_type=='Entire Home'].total_2017]
+
+z_eh, p_eh = sm.stats.proportions_ztest(count_eh, nobs_eh)
+
+#Other z-test
+count_other = [proportions_room[proportions_room.room_type=='Other'].over90_2016,
+               proportions_room[proportions_room.room_type=='Other'].over90_2017]
+nobs_other = [proportions_room[proportions_room.room_type=='Other'].total_2016,
+              proportions_room[proportions_room.room_type=='Other'].total_2017]
+
+z_other, p_other = sm.stats.proportions_ztest(count_other, nobs_other)
+
+#print(f"Z-statistic for 'Other' room type: {z_other}, P-value: {p_other}")
+#print(f"Z-statistic for 'Entire Home' room type: {z_eh}, P-value: {p_eh}")
+
+#Reject H0 for both
+# Entire Home decrease is statistically significant at the 99% level
+# Other increase is statistically significant at the 95% level
+```
+
+```{python}
+#Prepare for the two-proportion z-test in proportion of properties estimated over 90 days for each host type
+
+#Getting number of over 90s and totals for each category, as this is what the statistical test requires
+
+query2 = '''
+       WITH host_type AS (
+       SELECT 
+           host_id,
+           CASE WHEN COUNT(*)>1 THEN 'Multi-Listing Host' ELSE 'Single Property Host' END AS host_type           
+       FROM reviews_annual
+       GROUP BY 1),
+       
+       listings_90 AS (
+            SELECT 
+            r.listing_id,
+            h.host_type,
+            CASE WHEN r.estimated_nights2015_capped >= 90 THEN 1 ELSE 0 END AS over90_2015,
+            CASE WHEN r.estimated_nights2015_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2015,
+            CASE WHEN r.estimated_nights2016_capped >= 90 THEN 1 ELSE 0 END AS over90_2016,
+            CASE WHEN r.estimated_nights2016_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2016,
+            CASE WHEN r.estimated_nights2017_capped >= 90 THEN 1 ELSE 0 END AS over90_2017,
+            CASE WHEN r.estimated_nights2017_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2017,
+            CASE WHEN r.estimated_nights2018_capped >= 90 THEN 1 ELSE 0 END AS over90_2018,
+            CASE WHEN r.estimated_nights2018_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2018
+        FROM reviews_annual r
+            LEFT JOIN host_type h
+                ON r.host_id=h.host_id)
+        
+    SELECT
+        host_type,
+        SUM(over90_2015) AS over90_2015,
+        SUM(over90_2015) + SUM(under90_2015) AS total_2015,
+        SUM(over90_2016) AS over90_2016,
+        SUM(over90_2016) + SUM(under90_2016) AS total_2016,
+        SUM(over90_2017) AS over90_2017,
+        SUM(over90_2017)+SUM(under90_2017) AS total_2017,
+        SUM(over90_2018) AS over90_2018,
+        SUM(over90_2018)+SUM(under90_2018) AS total_2018
+    FROM listings_90
+    GROUP BY 1
+'''
+
+proportions_host = db.sql(query2).to_df()
+#proportions_host.head()
+```
+
+```{python}
+#Two proportion z-test in proportion of properties estimated over 90 days for each host type.
+
+#H0: there is no difference in the proportion of properties estimated over 90 days for each host type.
+#H1: there is a difference in the proportion of properties estimated over 90 days for each host type.
+
+#Superhost z-test
+count_m = [proportions_host[proportions_host.host_type=='Multi-Listing Host'].over90_2016,
+               proportions_host[proportions_host.host_type=='Multi-Listing Host'].over90_2017]
+nobs_m = [proportions_host[proportions_host.host_type=='Multi-Listing Host'].total_2016,
+              proportions_host[proportions_host.host_type=='Multi-Listing Host'].total_2017]
+
+z_m, p_m = sm.stats.proportions_ztest(count_m, nobs_m)
+
+#Single property host z-test
+count_s = [proportions_host[proportions_host.host_type=='Single Property Host'].over90_2016,
+               proportions_host[proportions_host.host_type=='Single Property Host'].over90_2017]
+nobs_s = [proportions_host[proportions_host.host_type=='Single Property Host'].total_2016,
+              proportions_host[proportions_host.host_type=='Single Property Host'].total_2017]
+
+z_s, p_s = sm.stats.proportions_ztest(count_s, nobs_s)
+
+#print(f"Z-statistic for Multi-Listing Hosts: {z_m}, P-value: {p_m}")
+#print(f"Z-statistic for Single Property Hosts: {z_s}, P-value: {p_s}")
+
+# Multi-listing host decrease is statistically significant at the 99% level - reject H0
+# Single property host had no statistically significant change - accept H0
+```
+
+```{python}
+#Difference in differences test
+#Linking to this as I drew on it a lot: #https://www.kaggle.com/code/harrywang/difference-in-differences-in-python
+
+#Extracting relevant columns:
+did_df = reviews_annual[["listing_id", "room_type", "estimated_nights2015_capped", "estimated_nights2016_capped", "estimated_nights2017_capped", "estimated_nights2018_capped"]].copy()
+
+#Create a column for over 90 or not
+for year in years:
+    did_df[f'over_90_{year}'] = (did_df[f'estimated_nights{year}_capped'] > 90).astype(int)
+
+#Create treatment (Entire Home) versus control (Other) group
+did_df['entire_home'] = (did_df.room_type == 'Entire home/apt').astype(int)
+
+#Pivoting data - ChatGPT helped
+did_df = did_df.melt(
+    id_vars=['listing_id', 'room_type', 'entire_home'], 
+    value_vars=[f'over_90_{year}' for year in years], 
+    var_name='year', 
+    value_name='over_90'
+)
+
+#Extract year (final 4 characters)
+did_df['year'] = did_df.year.str[-4:].astype(int)
+
+#Policy and interaction columns
+did_df['post_policy'] = (did_df.year >= 2017).astype(int)
+did_df['interaction'] = did_df.entire_home * did_df.post_policy
+
+#Run model
+did_rooms = smf.ols('over_90 ~ post_policy + entire_home + interaction', data=did_df).fit()
+#did_rooms.summary()
+
+#Low goodness of fit (R^2 is 0.024)
+#But statistically significant decrease (-0.0492, or 4.92%) in Entire Homes available over 90 days
+```
+
+```{python}
+#Get occupancy estimates for the past 12 months
+reviews_recent.loc[:, 'year'] = 2024 #this is false but setting it so the function will work
+
+reviews_24 = occupancy_estimates(reviews_recent, listings, [2024])
+```
+
+```{python}
+#Work out percentage estimated over 90 days
+
+db.register('reviews_24', reviews_24)
+
+query4 = '''
+       WITH listings_90 AS (
+            SELECT 
+            listing_id,
+            CASE WHEN room_type = 'Entire home/apt' THEN 'Entire Home' ELSE 'Other' END AS room_type,
+            CASE WHEN estimated_nights2024_capped >= 90 THEN 1 ELSE 0 END AS over90_2023_24,
+            CASE WHEN estimated_nights2024_capped BETWEEN 1 AND 90 THEN 1 ELSE 0 END AS under90_2023_24
+        FROM reviews_24),
+
+        totals AS (
+            SELECT
+            room_type,
+            SUM(over90_2023_24) AS over90_2023_24,
+            SUM(over90_2023_24) + SUM(under90_2023_24) AS total_2023_24
+            FROM listings_90
+            GROUP BY 1)
+
+        SELECT 
+            room_type,
+            ROUND(100 * SUM(over90_2023_24) / SUM(total_2023_24), 2) AS pct_over90
+        FROM totals
+        GROUP BY 1
+'''
+
+recent_proportions = db.sql(query4).to_df()
+#recent_proportions.head()
+
+#Percent estimated over 90 days is 24.34% for Entire Home, as opposed to 35.71% for Other
+#Obviously the proportion itself doesn't matter as much as changes in the proportion (because we are very uncertain about the metric itself)
+#But this figure for Entire Homes is lower than in 2017, indicating the policy is still having an impact
+```
+
+A difference-in-differences (DiD) test for 2015-2018 assessed this trend more robustly. Using non-entire home room types as a control group **(Figure 3)**, the test found a small but statistically significant impact: the policy was associated with a 4.92% decrease in the likelihood of entire homes being occupied over 90 nights. Moreover, proportions for entire homes over the past 12 months remain below pre-policy figures, indicating the cap has been effective in suppressing numbers. From here, we can tentatively reject H0 and say that, although the effect size was small, the 90-night cap did reduce the proportion of entire homes rented out over this limit.
+
+```{python}
+#Plotting change over time
+
+#Quickly calculate proportions of room types over time
+db.register('proportions_room', proportions_room)
+query3 = '''
+        SELECT room_type,
+               ROUND(100 * over90_2015/total_2015, 2) AS pct_90_2015,
+               ROUND(100 * over90_2016/total_2016, 2) AS pct_90_2016,
+               ROUND(100 * over90_2017/total_2017, 2) AS pct_90_2017,
+               ROUND(100 * over90_2018/total_2018, 2) AS pct_90_2018
+        FROM proportions_room
+        '''
+room_proportions = db.sql(query3).to_df()
+
+#Pivot this - ChatGPT helped with the melt method
+rooms_pivoted = room_proportions.melt(id_vars='room_type', 
+                                  value_vars=['pct_90_2015', 'pct_90_2016', 'pct_90_2017', 'pct_90_2018'], 
+                                  var_name='Year', 
+                                  value_name='Proportion Over 90 Days')
+
+#Format the year column
+rooms_pivoted['Year'] = rooms_pivoted.Year.str[-4:].astype(int)
+
+#Set up figure
+
+#Figure
+colours = {'Entire Home': '#ff5c00', 'Other': '#0061ff'}
+plt.figure(figsize=(10, 6))
+plt.axvline(x=2016, color='grey', alpha=0.6, linestyle='--', label='Policy Imposition')
+sns.lineplot(data=rooms_pivoted, x='Year', y='Proportion Over 90 Days', hue='room_type', marker='o', palette=colours)
+
+#Labels
+plt.title('Annual Proportion of Listings Over 90 Days by Room Type')
+plt.xlabel('Year')
+plt.ylabel('Proportion of Listings Occupied for Over 90 Days (%)')
+plt.legend(title='Room Type')
+
+#Sort out x-ticks: add Dec to make it clear it's for cumulative year (rather than Jan)
+xticks = years
+xticklabels = [f'End of {year}' for year in xticks]
+plt.xticks(xticks, xticklabels)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#Paired sample t-test for listings per host between 2016 and 2017
+
+#H0: there is no difference in the number of listings for the same hosts in 2017 versus 2016
+#H1: there is a difference in the number of listings for the same hosts in 2017 versus 2016
+
+#Getting listings count per host for all hosts who had at least 1 active listing in 2016 and 2017
+#This is a paired sample t-test so they have to be in both
+query5 = '''
+        WITH counts AS (
+            SELECT
+                DISTINCT(host_id),
+                SUM(CASE WHEN reviews_2016 > 0 THEN 1 ELSE 0 END) AS listings_2016,
+                SUM(CASE WHEN reviews_2017 > 0 THEN 1 ELSE 0 END) AS listings_2017
+            FROM reviews_annual 
+            GROUP BY 1)
+        SELECT *
+        FROM counts
+        WHERE listings_2016 > 0 AND listings_2017>0
+        '''
+host_listing_counts = db.sql(query5).to_df()
+
+t_stat, p_value = ttest_rel(host_listing_counts.listings_2016, host_listing_counts.listings_2017)
+#print(f"t-statistic: {t_stat}, p-value: {p_value}")
+#print(f'Mean listing count in 2016: {host_listing_counts.listings_2016.mean():.2f}')
+#print(f'Mean listing count in 2017: {host_listing_counts.listings_2017.mean():.2f}')
+
+#t-statistic: -7.497682027460346, p-value: 7.895810682663241e-14
+#Mean listing count in 2016: 1.23
+#Mean listing count in 2017: 1.36
+
+#So count of listings per host increased between years
+```
+
+```{python}
+#Prepare Edinburgh data (control group for DiD) for analysis: same data cleaning and filtering steps as above
+
+edi_reviews["date"] = pd.to_datetime(edi_reviews["date"], format="%Y-%m-%d")
+edi_reviews['year'] = edi_reviews.date.dt.year
+edi_reviews_2015_2018 = edi_reviews[(edi_reviews.year > 2014) & (edi_reviews.year < 2019)]
+
+edi_listings = edi_listings[["id", "host_id", "room_type", "minimum_nights"]]
+```
+
+```{python}
+#Calculate estimated occupancies
+#Use same list of years as for London data
+edi_reviews_annual = occupancy_estimates(edi_reviews_2015_2018,edi_listings,years)
+```
+
+```{python}
+#Find distinct listings for both locations
+tables = ['reviews_annual', 'edi_reviews_annual']
+results = []
+
+# Loop through each table and process
+for table_name in tables:
+
+    #Set treatment flag before combining tables
+    london_flag = 1 if table_name == 'reviews_annual' else 0
+
+    query = f'''
+    SELECT
+        DISTINCT(host_id),
+        SUM(CASE WHEN reviews_2015 > 0 THEN 1 ELSE NULL END) AS listings_2015,
+        SUM(CASE WHEN reviews_2016 > 0 THEN 1 ELSE NULL END) AS listings_2016,
+        SUM(CASE WHEN reviews_2017 > 0 THEN 1 ELSE NULL END) AS listings_2017,
+        SUM(CASE WHEN reviews_2018 > 0 THEN 1 ELSE NULL END) AS listings_2018
+    FROM {table_name}
+    GROUP BY 1
+    '''
+    # Execute query and get result as DataFrame
+    output = db.sql(query).to_df()
+
+    # Add the treatment column
+    output['london'] = london_flag
+
+    # Append to results list
+    results.append(output)
+
+# Combine results from both tables
+distinct_hosts = pd.concat(results, ignore_index=True)
+```
+
+```{python}
+#Comparison of counts
+
+db.register('distinct_hosts', distinct_hosts)
+
+query7 = '''
+        SELECT 
+            CASE WHEN london = 1 THEN 'London' ELSE 'Edinburgh' END AS city,
+            ROUND(AVG(listings_2015), 2) AS avg_listings_2015,
+            ROUND(AVG(listings_2016),2) AS avg_listings_2016,
+            ROUND(AVG(listings_2017),2) AS avg_listings_2017,
+            ROUND(AVG(listings_2018),2) AS avg_listings_2018
+        FROM distinct_hosts 
+        GROUP BY 1
+        '''
+check = db.sql(query7).to_df()
+#check.head()
+
+#London has increased relatively greater than Edinburgh every year, but particularly between 2016-2017 and 2017-2018
+```
+
+```{python}
+#Pivot data for DiD
+
+#ChatGPT helped again with the melt method
+combined_did = pd.melt(
+    distinct_hosts,
+    id_vars=['host_id', 'london'], 
+    value_vars=['listings_2015', 'listings_2016', 'listings_2017', 'listings_2018'],
+    var_name='year', 
+    value_name='count_listings')
+```
+
+```{python}
+#Finish setting up df for DiD
+
+#Extract year
+combined_did['year'] = combined_did.year.str[-4:].astype(int)
+
+#Policy and interaction columns
+combined_did['post_policy'] = (combined_did.year >= 2017).astype(int)
+combined_did['interaction'] = combined_did.london * combined_did.post_policy
+```
+
+```{python}
+#Run model
+did_listings = smf.ols('count_listings ~ post_policy + london + interaction', data=combined_did).fit()
+#did_listings.summary()
+
+#Interaction is not statistically significant!
+#But coefficient (0.0690) would have implied it led to an increase - potentially cancelling drop in proportion over 90 days out?
+```
+
+However, a reduction in the proportion of entire home listings over 90 nights does not necessarily mean compliance with this policy. A paired sample t-test found a statistically significant increase in the number of listings per host between 2016 and 2017, suggesting hosts may have created multiple listings for single properties to circumvent the limit. Another DiD test comparing average listings per host between 2015 and 2018 in London and Edinburgh (which did not experience regulatory changes) found the policy was associated with a 6.9% increase in listings per host, though this was not statistically significant (p=0.199). Further consideration of duplicate listings is essential to assess the policy’s implications.
+
+In conclusion, while the 90-night cap reduced the proportion of entire homes occupied for over 90 nights in London, its impact on overall STL activity in the city remains uncertain. Further analysis of substitution effects and access to Airbnb’s actual occupancy data are necessary for a robust assessment. Ultimately, temporal restrictions may prove beneficial in curbing commercialisation of the platform, but policymakers should urge Airbnb to supplement these with checks (and potential fines) for duplicate listings which try to circumvent these requirements.
 
 ### Spatial Regulation
 
@@ -703,9 +1159,6 @@ However, the clusters of both SHL and MHL also suggests that a spatial regulatio
 Instead, policy interventions could target hosts based on whether they are single- or multi-unit hosts. Multi-unit hosts could be subjected to stricter regulations, such as specific multi-unit licenses and higher tax rates, with the overall objective of assuaging the impacts of over-commercialisation of short-term lets. 
 
 ## Sustainable Authorship Tools
-Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
-
-Your QMD file should automatically download your BibTeX and CLS files and any other required files. If this is done right after library loading then the entire report should output successfully.
 
 Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
 
