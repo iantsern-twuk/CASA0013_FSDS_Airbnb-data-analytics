@@ -19,14 +19,14 @@ format:
     include-in-header:
       text: |
         \addtokomafont{disposition}{\rmfamily}
-    mainfont: Times
-    sansfont: Times
-    monofont: Times
+    mainfont: Liberation Serif
+    sansfont: Liberation Sans
+    monofont: Liberation Mono
     papersize: a4
     geometry:
       - top=25mm
-      - left=40mm
-      - right=30mm
+      - left=25mm
+      - right=25mm
       - bottom=25mm
       - heightrounded
     toc: false
@@ -48,29 +48,9 @@ jupyter:
 
 ```{python}
 #| echo: false
-# source: ChatGPT
-import importlib.util
-import subprocess
-import sys
-def install_and_import(package):
-    """
-    Checks if a package is installed; if not, installs it.
-    """
-    try:
-        # Check if the package is already installed
-        if not importlib.util.find_spec(package):
-            print(f"{package} not found. Installing...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        else:
-            print(f"{package} is already installed.")
-    except Exception as e:
-        print(f"An error occurred while checking or installing {package}: {e}")
-install_and_import('rioxarray')
-install_and_import('contextily')
-install_and_import('xarray')
-install_and_import('pysal')
-install_and_import('matplotlib_scalebar')
-install_and_import('duckdb')
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module='spaghetti')
+
 import os
 import numpy as np
 import pandas as pd
@@ -87,7 +67,6 @@ import xarray  # Surface data manipulation
 from pysal.explore import esda  # Exploratory Spatial analytics
 from pysal.lib import weights  # Spatial weights
 from matplotlib_scalebar.scalebar import ScaleBar
-import warnings
 from requests import get
 from urllib.parse import urlparse
 from functools import wraps
@@ -99,7 +78,6 @@ from scipy.stats import chi2_contingency
 from scipy.stats import ttest_rel
 import statsmodels.formula.api as smf
 
-# Setting default font
 plt.rcParams['font.family'] = "Liberation Serif"
 ```
 
@@ -119,6 +97,8 @@ def download_bib_file(url, output_path):
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/bio.bib", "bio.bib")
 download_bib_file("https://raw.githubusercontent.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/harvard-cite-them-right.csl", "harvard-cite-them-right.csl")
 ```
+## 0. Docker command
+Please render this document with the following command: ⁠ quarto render Group_Work.qmd --to pdf --pdf-engine=pdflatex ⁠
 
 ## 1. Who collected the InsideAirbnb data?
 Prior to 2015, the InsideAirbnb (IA) data (going back to 2013) was collected by Tom Slee. From early 2015, the IA data was (and continues to be) collected by founder Murray Cox, an Australian community and data activist, together with a team of collaborators and advisors comprising artists, activists, researchers, and data scientists [@insideairbnb].
@@ -226,6 +206,7 @@ boro = gpd.read_file('shapefiles/London_Borough_Excluding_MHW.shp')
 ```
 
 ```{python}
+warnings.filterwarnings("ignore", message="PROJ: proj_create_from_database: Cannot find proj.db")
 # Identifying and selecting relevant columns from listings datasets
 columns_q6a = ['id', 'listing_url', 'latitude', 'longitude', 'property_type', 'room_type']
 listings2021_q6a = df_listings_2021[columns_q6a]
@@ -263,7 +244,7 @@ def entire_home_map_msoa(listings):
 
     # calculating proportion of "entire home/apt" listings out of total listings
     msoas['entire_home_density'] = msoas['entire_home_count'] / msoas['total_listings']
-
+    msoas['entire_home_density'] = msoas['entire_home_density'].fillna(0)
     return msoas
 
 # Years to plot
@@ -282,7 +263,7 @@ for i, year in enumerate(listings_list):
     entirehomedensity.plot(column='entire_home_density', 
                            cmap = plt.cm.coolwarm, 
                            ax = ax,
-                          legend=True,
+                          legend=False,
                            legend_kwds={'label': "Proportion of Entire Home/Apt Listings",
                                         'orientation': "horizontal"})
     
@@ -290,8 +271,18 @@ for i, year in enumerate(listings_list):
     ax.set_title(f'{i+2021}')
     ax.set_axis_off()  # Optionally turn off the axis for a cleaner look
 
+#ChatGPT helped set a single legend, rather than one for each map
+colourbar = fig.colorbar(entirehomedensity.plot(column='entire_home_density', cmap=plt.cm.coolwarm, ax=axes[0]).collections[0], 
+             ax=axes, 
+             orientation='horizontal', 
+             fraction=0.04, 
+             pad=0.1)
+colourbar.ax.tick_params(labelsize=18)
+colourbar.set_label("Proportion of Entire Home/Apt Listings", fontsize=16)
+
 plt.suptitle("Figure 1: Proportion of All Listings that are Entire Home/Apt by MSOA", fontsize= 24)
-plt.tight_layout()
+#Tight layout had an error but this works fine
+plt.subplots_adjust(wspace=0.2, hspace=0.3, top=0.85, bottom=0.2)
 plt.show()
 ```
 
@@ -397,13 +388,13 @@ These trends in room and host types point towards the increasing commercialisati
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-As indicated above, although Airbnb was initially conceived of and portrayed as a small-scale, peer-to-peer exchange platform, its rapid expansion and shift towards entire homes and multi-unit hosts has led to concerns about rent increases, lost hotel and income tax revenues, and even gentrification and displacement [@hubscher_2023]. In response to these challenges, hosts in Greater London are limited to renting out ‘entire home’ listings for a maximum of 90 nights annually: a regulation introduced in January 2017 [@airbnb_2017]. In this section, we seek to assess the efficacy of this 90-day regulation in curbing the expansion of commercialised Airbnb listings, and consider whether other approaches may be more effective.
+As indicated above, although Airbnb was initially conceived of and portrayed as a small-scale, peer-to-peer exchange platform, its rapid expansion and shift towards entire homes and multi-unit hosts has led to concerns about rent increases, lost hotel and income tax revenues, and even gentrification and displacement (Huebscher and Borst, 2023). In response to these challenges, hosts in Greater London are limited to renting out ‘entire home’ listings for a maximum of 90 nights annually: a regulation introduced in January 2017 (Airbnb, 2017). In this section, we seek to assess the efficacy of this 90-day regulation in curbing the expansion of commercialised Airbnb listings, and consider whether other approaches may be more effective.
 
 ### Temporal Regulation
 
 Beginning with the 90-night limit, we first ask whether the policy reduced the proportion of entire home listings over 90 nights relative to other room types. The null hypothesis posits no difference in the proportion of entire home listings exceeding 90 nights compared to single room listings before and after the policy was imposed, while the alternate hypothesis suggests a change occurred.
 
-A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts @wang_2024's occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute* changes or proportions, we can compare figures over time to consider relative occupancy trends.
+A limitation of IA data is its lack of specific occupancy information, necessitating estimation via review counts. Although a number of metrics were tested, this report ultimately adopts Wang et al.’s (2024) occupancy estimation method due to its behavioral plausibility. This approach estimates one review per two stays, assumes a stay duration of three nights unless a longer minimum stay is specified, and caps occupancy at 21 nights per month to account for cleaning and gaps. However, this method is inherently unfalsifiable and uncertain - for example, users may leave reviews after booking cancellations. Therefore, while we cannot use this metric to talk about *absolute* changes or proportions, we can compare figures over time to consider relative occupancy trends.
 
 ```{python}
 #Select only desired listings columns
@@ -736,7 +727,7 @@ plt.axvline(x=2016, color='grey', alpha=0.6, linestyle='--', label='Policy Impos
 sns.lineplot(data=rooms_pivoted, x='Year', y='Proportion Over 90 Days', hue='room_type', marker='o', palette=colours)
 
 #Labels
-plt.title('Annual Proportion of Listings Over 90 Days by Room Type')
+plt.title('Figure 3: Annual Proportion of Listings Over 90 Days by Room Type', size=14)
 plt.xlabel('Year')
 plt.ylabel('Proportion of Listings Occupied for Over 90 Days (%)')
 plt.legend(title='Room Type')
@@ -967,6 +958,8 @@ df2 = df[df['year'] == year]
 ```
 
 ```{python}
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
 
 #Rey, S., Arribas-Bel, D. and Wolf, L.J., 2023. Geographic data science with python. Chapman and Hall/CRC.Spatial Autocorrelation code was implemented with the help of a tutorial found in Geographic Data Science with Python by Rey et al.
@@ -1032,7 +1025,7 @@ def g_map(g, db, ax):
     if g.star:
         st = "*"
     # Add title
-    ax.set_title(f"Comparison of Standardised G{st} statistic between SHL and MHL Density by MSOA", size=13)
+    ax.set_title(f"Figure 4: Comparison of Standardised G{st} statistic between SHL and MHL Density by MSOA", size=13)
     # Remove axis for aesthetics
     ax.set_axis_off()
 
@@ -1040,6 +1033,8 @@ def g_map(g, db, ax):
 ```
 
 ```{python}
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', message="Gi* requested, but (a) weights are already row-standardized, (b) no weights are on the diagonal, and (c) no default value supplied to star. Assuming that the self-weight is equivalent to the maximum weight in the row. To use a different default (like, .5), set `star=.5`, or use libpysal.weights.fill_diagonal() to set the diagonal values of your weights matrix and use `star=None` in Gi_Local.")
 
 go_i2 = esda.getisord.G_Local(df2["density"], w)
@@ -1098,7 +1093,7 @@ def g_map2(g, db, ax):
     if g.star:
         st = "*"
     # Add title
-    ax.set_title(f"Comparison of Standardised G{st} statistic between SHL and MHL Listing Density by MSOA", size=13)
+    ax.set_title(f"Figure 4: Comparison of Standardised G{st} statistic between SHL and MHL Listing Density by MSOA", size=13)
     # Remove axis for aesthetics
     ax.set_axis_off()
 
@@ -1183,6 +1178,6 @@ Instead, policy interventions could target hosts based on whether they are singl
 
 ## Sustainable Authorship Tools
 
-Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
+Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Liberation Serif](https://fonts.adobe.com/fonts/liberation-serif) (mainfont), [Liberation Sans](https://fonts.adobe.com/fonts/liberation-sans) (<span style="font-family:Sans-Serif;">sansfont</span>) and [Liberation Mono](https://fonts.google.com/specimen/Liberation-Mono) (`monofont`). 
 
 ## References
