@@ -2,7 +2,7 @@
 ## The spatial data science of team project
 ### Team members:👨🏼‍🎤:Ian 👨🏻‍🎤:Jin 👩🏻‍🎤:Jess 🧑🏻‍🎤:Jiayi 👩🏻‍🎤:Cerys 
 [Research report](https://raw.githack.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/Group_Work_final.html)
-1.	InsideAirbnb Data Collection:
+#### 1.InsideAirbnb Data Collection:
 	•	Initially collected by Tom Slee (before 2015), now collected by Murray Cox and collaborators.
 	•	The data is collected to provide an alternative to Airbnb’s official data, helping cities and communities make informed decisions about Airbnb’s impact.
 2.	Purpose of Data:
