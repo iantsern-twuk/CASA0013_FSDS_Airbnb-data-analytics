@@ -1,5 +1,5 @@
 # CASA0013_FSDS_Airbnb-data-analytics
-## The spatial data science of team project
+## The spatial data science project: insight Airbnb
 ### Team members:👨🏼‍🎤:Ian 👨🏻‍🎤:Jin 👩🏻‍🎤:Jess 🧑🏻‍🎤:Jiayi 👩🏻‍🎤:Cerys 
 [Research report](https://raw.githack.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/Group_Work_final.html)
 
