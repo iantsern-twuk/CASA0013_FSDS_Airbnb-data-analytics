@@ -1,6 +1,7 @@
 # CASA0013_FSDS_Airbnb-data-analytics
 ## The spatial data science of team project
 ### Team members:👨🏼‍🎤:Ian 👨🏻‍🎤:Jin 👩🏻‍🎤:Jess 🧑🏻‍🎤:Jiayi 👩🏻‍🎤:Cerys 
+[Research report](https://raw.githack.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/Group_Work_final.html)
 1.	InsideAirbnb Data Collection:
 	•	Initially collected by Tom Slee (before 2015), now collected by Murray Cox and collaborators.
 	•	The data is collected to provide an alternative to Airbnb’s official data, helping cities and communities make informed decisions about Airbnb’s impact.
@@ -19,5 +20,3 @@
 7.	Regulating Short-Term Lets (STLs) in London:
 	•	Temporal Regulation: The 90-day limit for renting entire homes has reduced the proportion of long-term rentals. However, there may be workarounds like multiple listings per host to circumvent the regulation.
 	•	Spatial Regulation: A spatial analysis of listings suggests that zoning or banning Airbnb in certain areas might not be effective, as both single- and multi-unit hosts tend to cluster in similar areas. Multi-unit hosts should face stricter regulations to reduce over-commercialization.
-
-[Welcome to our concert](https://raw.githack.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/Group_Work_final.html)
