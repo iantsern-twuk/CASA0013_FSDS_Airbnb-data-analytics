@@ -3,26 +3,11 @@
 ### Team members:👨🏼‍🎤:Ian 👨🏻‍🎤:Jin 👩🏻‍🎤:Jess 🧑🏻‍🎤:Jiayi 👩🏻‍🎤:Cerys 
 [Research report](https://raw.githack.com/iantsern-twuk/CASA0013_FSDS_Airbnb-data-analytics/refs/heads/main/Documentation/Group_Work_final.html)
 
-#### 1. InsideAirbnb Data Collection:
-##### •Initially collected by Tom Slee (before 2015), now collected by Murray Cox and collaborators.
-##### •The data is collected to provide an alternative to Airbnb’s official data, helping cities and communities make informed decisions about Airbnb’s impact.
+As cities around the world grapple with rising rents and housing shortages, short-term rental platforms like Airbnb have come under increasing scrutiny. But how much do we know about their true impact? While Airbnb offers its own curated data, researchers and communities often rely on InsideAirbnb—an open community project that scrapes publicly available listings to reveal what’s happening behind the scenes.
 
-#### 2. Purpose of Data:
-##### •The IA data aims to challenge Airbnb’s potentially misleading public data, offering insights into its impacts, especially on residential neighbourhoods.
-#### 3. Collection Method:
-##### •Web scraping: automated software extracts publicly available data from Airbnb listings (e.g., description, location, property type).
-##### •The method introduces biases and potential inaccuracies, such as missing deleted listings and issues with occupancy rate estimation.
+Take London, for example. In 2024, over 64% of listings were entire homes, and more than half were run by hosts managing multiple properties—a clear signal that Airbnb is shifting from a home-sharing model to a commercial enterprise. This growing trend raises serious questions about housing availability and neighbourhood change.
 
-#### 4. Impact of Collection Method:
-##### •The data’s limitations include bias due to web scraping, missing information (e.g., deleted listings), and lack of occupancy information (using review counts instead). These issues could affect the completeness and accuracy of the dataset.
+Although city authorities have tried to respond—with rules like the 90-day cap on entire-home rentals—hosts often find ways around them. And because commercial listings tend to cluster in the same areas, simple zoning restrictions aren’t enough. To truly protect housing and communities, more targeted and enforceable policies—especially against multi-unit hosts—are urgently needed.
 
-#### 5. Ethical Concerns:
-##### •Ethical issues related to privacy infringement, especially with user data and Airbnb’s proprietary information, as well as the potential for data misuse.
 
-#### 6.Airbnb in London: Trends and Insights:
-##### •There is a rising trend of entire-home listings (64% in 2024), which shows the increasing commercialization of Airbnb. Multiple-unit hosts are also growing, with 52.2% of listings in 2024 attributed to them.
-##### •These trends suggest a shift from home-sharing to commercial profit-making, negatively impacting local communities.
 
-#### 7. Regulating Short-Term Lets (STLs) in London:
-##### •Temporal Regulation: The 90-day limit for renting entire homes has reduced the proportion of long-term rentals. However, there may be workarounds like multiple listings per host to circumvent the regulation.
-##### •Spatial Regulation: A spatial analysis of listings suggests that zoning or banning Airbnb in certain areas might not be effective, as both single- and multi-unit hosts tend to cluster in similar areas. Multi-unit hosts should face stricter regulations to reduce over-commercialization.
